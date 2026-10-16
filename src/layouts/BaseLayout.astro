@@ -41,14 +41,10 @@ const currentPath = Astro.url.pathname;
             Toggle Theme
           </button>
         </div>
-        <div class="site-description">
-          Personal website, software projects, and notes.
-        </div>
         <nav class="site-nav">
           <ul class="nav-links">
             <li><a href="/" class={currentPath === '/' ? 'active' : ''}>Home</a></li>
             <li><a href="/blog" class={currentPath.startsWith('/blog') ? 'active' : ''}>Blog</a></li>
-            <li><a href="/archive" class={currentPath.startsWith('/archive') ? 'active' : ''}>Archive</a></li>
             <li><a href="/tags" class={currentPath.startsWith('/tags') ? 'active' : ''}>Tags</a></li>
             <li><a href="/rss.xml">RSS</a></li>
           </ul>

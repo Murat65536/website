@@ -15,7 +15,7 @@ const tagCounts = posts.reduce<Record<string, number>>((acc, post) => {
 const sortedTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 ---
 
-<BaseLayout title="Tags | Bob's Notebook" description="All topics and tags.">
+<BaseLayout title="Tags | Murat" description="All topics and tags.">
   <h1>Tags</h1>
   <p style="color: var(--text-muted); margin-bottom: 2rem;">
     Browse writings by subject.
