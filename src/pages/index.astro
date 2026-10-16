@@ -9,10 +9,10 @@ const BIRTH_DATE = '2010-08-20T00:00:00';
 
 <BaseLayout title="Murat Bayraktar">
   <article>
-    <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.75rem;">
-      <p>Hey! I'm Murat. I'm a high school student and programmer.</p>
-      <p>I code, I do math, and I write.</p>
-      <p>Age: <RealTimeAge birthDate={BIRTH_DATE} precision={9} /></p>
+    <p>Hey! I'm Murat. I'm a high school student and programmer.</p>
+    <p>I code, I do math, and I write.</p>
+    <p style="color: var(--text-muted);">
+      Age: <RealTimeAge birthDate={BIRTH_DATE} precision={9} />
     </p>
 
     <WakaTimeStats />

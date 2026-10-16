@@ -4,30 +4,16 @@ import { getWakaTimeStats } from '../lib/wakatime';
 const stats = await getWakaTimeStats();
 ---
 
-<div class="wakatime-container">
-  <div class="wakatime-header">
-    <h2>Coding Activity</h2>
-    <span class="wakatime-range">{stats.rangeLabel}</span>
-  </div>
+<section class="coding-activity-section">
+  <h2>Coding Activity</h2>
+  <p>
+    I track my editor time with <a href="https://wakatime.com/@Murat65536">WakaTime</a>.
+    Since May 2024, I have logged <strong>{stats.totalHours.toLocaleString()} hours</strong> of coding
+    (~{stats.dailyAverageHours} hrs/day, with {stats.last30DaysHours} hrs in the past 30 days).
+  </p>
 
-  <div class="wakatime-summary-grid">
-    <div class="summary-metric">
-      <span class="metric-label">Total Tracked</span>
-      <strong class="metric-val">{stats.totalHours.toLocaleString()} hrs</strong>
-    </div>
-    <div class="summary-metric">
-      <span class="metric-label">Last 30 Days</span>
-      <strong class="metric-val">{stats.last30DaysHours.toLocaleString()} hrs</strong>
-    </div>
-    <div class="summary-metric">
-      <span class="metric-label">Daily Average</span>
-      <strong class="metric-val">{stats.dailyAverageHours} hrs/day</strong>
-    </div>
-  </div>
-
-  <!-- Static SVG Cumulative Growth Chart -->
   {stats.chart.linePath && (
-    <div class="chart-wrapper">
+    <div class="activity-chart">
       <svg 
         viewBox={`0 0 ${stats.chart.width} ${stats.chart.height}`} 
         class="activity-svg"
@@ -35,7 +21,7 @@ const stats = await getWakaTimeStats();
       >
         <defs>
           <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="var(--link)" stop-opacity="0.3" />
+            <stop offset="0%" stop-color="var(--link)" stop-opacity="0.18" />
             <stop offset="100%" stop-color="var(--link)" stop-opacity="0.0" />
           </linearGradient>
         </defs>
@@ -91,108 +77,27 @@ const stats = await getWakaTimeStats();
     </div>
   )}
 
-  <!-- Breakdown Bars & Details -->
-  <div class="wakatime-breakdown">
-    <div class="breakdown-section">
-      <span class="breakdown-title">Top Languages:</span>
-      <!-- Multi-color stacked bar -->
-      <div class="stacked-bar" aria-label="Languages distribution bar">
-        {stats.languages.map((item, index) => (
-          <div 
-            style={`width: ${item.percent}%; ${index === stats.languages.length - 1 ? 'flex-grow: 1;' : ''} background-color: ${item.color};`} 
-            title={`${item.name}: ${item.percent}%`}
-          />
-        ))}
-      </div>
-      <ul class="breakdown-list">
-        {stats.languages.map(item => (
-          <li>
-            <span class="color-dot" style={`background-color: ${item.color};`}></span>
-            <span class="item-name">{item.name}</span>
-            <span class="item-pct">{item.percent}%</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-
-    <div class="breakdown-section">
-      <span class="breakdown-title">Top Editors:</span>
-      <ul class="breakdown-list">
-        {stats.editors.map(item => (
-          <li>
-            <span class="color-dot" style={`background-color: ${item.color};`}></span>
-            <span class="item-name">{item.name}</span>
-            <span class="item-pct">{item.percent}%</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  </div>
-</div>
+  <ul>
+    <li>
+      <strong>Languages:</strong> {stats.languages.map(l => `${l.name} (${l.percent}%)`).join(', ')}
+    </li>
+    <li>
+      <strong>Editors:</strong> {stats.editors.map(e => `${e.name} (${e.percent}%)`).join(', ')}
+    </li>
+    <li>
+      <strong>Operating Systems:</strong> {stats.os.map(o => `${o.name} (${o.percent}%)`).join(', ')}
+    </li>
+  </ul>
+</section>
 
 <style>
-  .wakatime-container {
-    margin: 2.25rem 0 2.5rem;
-    padding: 1.25rem 1.35rem;
-    background-color: var(--code-bg);
-    border: 1px solid var(--border-muted);
-    border-radius: 6px;
+  .coding-activity-section {
+    margin-top: 2.25rem;
   }
 
-  .wakatime-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid var(--border-muted);
-    padding-bottom: 0.4rem;
-  }
-
-  .wakatime-header h2 {
-    margin: 0;
-    border: none;
-    padding: 0;
-    font-size: 1.25rem;
-  }
-
-  .wakatime-range {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    font-family: var(--font-mono);
-  }
-
-  .wakatime-summary-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
-  }
-
-  .summary-metric {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-
-  .metric-label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-muted);
-  }
-
-  .metric-val {
-    font-size: 1.15rem;
-    color: var(--text);
-    font-family: var(--font-mono);
-  }
-
-  .chart-wrapper {
-    margin: 0.75rem 0 1.25rem;
-    background-color: var(--bg);
-    border: 1px solid var(--border-muted);
-    border-radius: 4px;
-    padding: 0.5rem 0.25rem;
+  .activity-chart {
+    margin: 1.25rem 0 1.5rem;
+    width: 100%;
   }
 
   .activity-svg {
@@ -204,65 +109,6 @@ const stats = await getWakaTimeStats();
   :global(.chart-tick-text) {
     font-size: 10px;
     fill: var(--text-muted);
-    font-family: var(--font-mono);
-  }
-
-  .wakatime-breakdown {
-    display: flex;
-    flex-direction: column;
-    gap: 0.9rem;
-    font-size: 0.88rem;
-  }
-
-  .breakdown-title {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    margin-bottom: 0.35rem;
-    display: inline-block;
-  }
-
-  .stacked-bar {
-    display: flex;
-    height: 6px;
-    width: 100%;
-    border-radius: 3px;
-    overflow: hidden;
-    margin-bottom: 0.5rem;
-    background-color: var(--border-muted);
-  }
-
-  .breakdown-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 1rem;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .breakdown-list li {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    margin: 0;
-    font-size: 0.82rem;
-  }
-
-  .color-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-    flex-shrink: 0;
-  }
-
-  .item-name {
-    color: var(--text);
-  }
-
-  .item-pct {
-    color: var(--text-muted);
     font-family: var(--font-mono);
   }
 </style>
