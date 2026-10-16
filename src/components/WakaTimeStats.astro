@@ -5,77 +5,11 @@ const stats = await getWakaTimeStats();
 ---
 
 <section class="coding-activity-section">
-  <h2>Coding Activity</h2>
-  <p>
-    I track my editor time with <a href="https://wakatime.com/@Murat65536">WakaTime</a>.
-    Since May 2024, I have logged <strong>{stats.totalHours.toLocaleString()} hours</strong> of coding
-    (~{stats.dailyAverageHours} hrs/day, with {stats.last30DaysHours} hrs in the past 30 days).
-  </p>
-
-  {stats.chart.linePath && (
-    <div class="activity-chart">
-      <svg 
-        viewBox={`0 0 ${stats.chart.width} ${stats.chart.height}`} 
-        class="activity-svg"
-        aria-label="Cumulative coding hours over time"
-      >
-        <defs>
-          <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="var(--link)" stop-opacity="0.18" />
-            <stop offset="100%" stop-color="var(--link)" stop-opacity="0.0" />
-          </linearGradient>
-        </defs>
-
-        <!-- Horizontal grid lines -->
-        {stats.chart.yTicks.map(tick => (
-          <g>
-            <line 
-              x1="45" 
-              y1={tick.y} 
-              x2={stats.chart.width - 15} 
-              y2={tick.y} 
-              stroke="var(--border-muted)" 
-              stroke-width="1"
-              stroke-dasharray="2 3"
-            />
-            <text 
-              x="38" 
-              y={tick.y + 3} 
-              text-anchor="end" 
-              class="chart-tick-text"
-            >
-              {tick.label}
-            </text>
-          </g>
-        ))}
-
-        <!-- Area fill -->
-        <path d={stats.chart.areaPath} fill="url(#chartGradient)" />
-
-        <!-- Line -->
-        <path 
-          d={stats.chart.linePath} 
-          fill="none" 
-          stroke="var(--link)" 
-          stroke-width="2" 
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-
-        <!-- X-axis ticks -->
-        {stats.chart.xTicks.map(tick => (
-          <text 
-            x={tick.x} 
-            y={stats.chart.height - 6} 
-            text-anchor="middle" 
-            class="chart-tick-text"
-          >
-            {tick.label}
-          </text>
-        ))}
-      </svg>
-    </div>
-  )}
+  <h5>Coding Activity</h5>
+  <p>Since: May 2024</p>
+  <p>Total: {stats.totalHours.toLocaleString()} hrs</p>
+  <p>Daily Average: {stats.dailyAverageHours} hrs</p>
+  <p>Last 30 Days: {stats.last30DaysHours} hrs</p>
 
   <ul>
     <li>
@@ -93,22 +27,5 @@ const stats = await getWakaTimeStats();
 <style>
   .coding-activity-section {
     margin-top: 2.25rem;
-  }
-
-  .activity-chart {
-    margin: 1.25rem 0 1.5rem;
-    width: 100%;
-  }
-
-  .activity-svg {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-
-  :global(.chart-tick-text) {
-    font-size: 10px;
-    fill: var(--text-muted);
-    font-family: var(--font-mono);
   }
 </style>
