@@ -1,0 +1,43 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const posts = await getCollection('blog');
+
+// Count tags
+const tagCounts = posts.reduce<Record<string, number>>((acc, post) => {
+  post.data.tags?.forEach(tag => {
+    acc[tag] = (acc[tag] || 0) + 1;
+  });
+  return acc;
+}, {});
+
+const sortedTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+---
+
+<BaseLayout title="Tags | Bob's Notebook" description="All topics and tags.">
+  <h1>Tags</h1>
+  <p style="color: var(--text-muted); margin-bottom: 2rem;">
+    Browse writings by subject.
+  </p>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+    {sortedTags.map(([tag, count]) => (
+      <a 
+        href={`/tags/${tag}`}
+        style="
+          font-family: var(--font-mono);
+          font-size: 0.9rem;
+          padding: 0.4rem 0.75rem;
+          background-color: var(--tag-bg);
+          color: var(--text);
+          border: 1px solid var(--border-muted);
+          border-radius: 4px;
+          text-decoration: none;
+        "
+      >
+        #{tag} <span style="color: var(--text-muted);">({count})</span>
+      </a>
+    ))}
+  </div>
+</BaseLayout>

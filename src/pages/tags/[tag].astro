@@ -1,0 +1,49 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  const allTags = new Set<string>();
+  posts.forEach(post => post.data.tags?.forEach(tag => allTags.add(tag)));
+
+  return Array.from(allTags).map(tag => ({
+    params: { tag },
+    props: {
+      posts: posts
+        .filter(post => post.data.tags?.includes(tag))
+        .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()),
+    },
+  }));
+}
+
+const { tag } = Astro.params;
+const { posts } = Astro.props;
+
+function formatDate(date: Date) {
+  return date.toISOString().split('T')[0];
+}
+---
+
+<BaseLayout title={`Posts tagged #${tag} | Bob's Notebook`}>
+  <div style="margin-bottom: 2rem;">
+    <a href="/tags" style="font-size: 0.85rem; color: var(--text-muted);">&larr; All Tags</a>
+    <h1 style="margin-top: 0.5rem;">#{tag}</h1>
+    <p style="color: var(--text-muted);">
+      {posts.length} {posts.length === 1 ? 'article' : 'articles'} filed under this tag.
+    </p>
+  </div>
+
+  <ul class="post-list">
+    {posts.map(post => (
+      <li class="post-row">
+        <div class="post-row-left">
+          <span class="post-date">{formatDate(post.data.pubDate)}</span>
+          <a href={`/blog/${post.id}`} class="post-title-link">
+            {post.data.title}
+          </a>
+        </div>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>

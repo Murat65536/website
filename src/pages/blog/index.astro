@@ -1,0 +1,44 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const posts = (await getCollection('blog'))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+function formatDate(date: Date) {
+  return date.toISOString().split('T')[0];
+}
+---
+
+<BaseLayout title="Blog | Bob" description="Writings, expositions, and technical notes.">
+  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
+    <h1>Blog</h1>
+    <a href="/rss.xml" style="font-size: 0.88rem; font-family: var(--font-mono);">[RSS Feed]</a>
+  </div>
+  <ul class="post-list">
+    {posts.map(post => (
+      <li class="post-row">
+        <div class="post-row-main">
+          <div class="post-row-header">
+            <span class="post-date">{formatDate(post.data.pubDate)}</span>
+            <a href={`/blog/${post.id}`} class="post-title-link">
+              {post.data.title}
+            </a>
+          </div>
+          {post.data.description && (
+            <p class="post-description">
+              {post.data.description}
+            </p>
+          )}
+        </div>
+        {post.data.tags && post.data.tags.length > 0 && (
+          <div class="post-tags">
+            {post.data.tags.map(tag => (
+              <a href={`/tags/${tag}`} class="tag-badge">#{tag}</a>
+            ))}
+          </div>
+        )}
+      </li>
+    ))}
+  </ul>
+</BaseLayout>

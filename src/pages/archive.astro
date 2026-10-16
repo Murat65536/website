@@ -1,0 +1,57 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const posts = (await getCollection('blog'))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+// Group posts by year
+const postsByYear = posts.reduce<Record<number, typeof posts>>((acc, post) => {
+  const year = post.data.pubDate.getFullYear();
+  if (!acc[year]) acc[year] = [];
+  acc[year].push(post);
+  return acc;
+}, {});
+
+const years = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
+
+function formatMonthDay(date: Date) {
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${m}-${d}`;
+}
+---
+
+<BaseLayout title="Archive" description="Chronological archive of all writings.">
+  <h1>Archive</h1>
+  <p style="color: var(--text-muted); margin-bottom: 2rem;">
+    All {posts.length} articles in reverse chronological order.
+  </p>
+
+  {years.map(year => (
+    <section style="margin-bottom: 2rem;">
+      <h2 style="font-family: var(--font-mono); font-size: 1.25rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">
+        {year} <span style="font-size: 0.85rem; font-weight: normal; color: var(--text-muted);">({postsByYear[year].length})</span>
+      </h2>
+      <ul class="post-list">
+        {postsByYear[year].map(post => (
+          <li class="post-row">
+            <div class="post-row-left">
+              <span class="post-date">{formatMonthDay(post.data.pubDate)}</span>
+              <a href={`/blog/${post.id}`} class="post-title-link">
+                {post.data.title}
+              </a>
+            </div>
+            {post.data.tags && post.data.tags.length > 0 && (
+              <div class="post-tags">
+                {post.data.tags.map(tag => (
+                  <a href={`/tags/${tag}`} class="tag-badge">#{tag}</a>
+                ))}
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</BaseLayout>

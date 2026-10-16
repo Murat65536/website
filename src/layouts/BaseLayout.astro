@@ -1,0 +1,101 @@
+---
+import 'katex/dist/katex.min.css';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { 
+  title = "Notebook & Personal Website", 
+  description = "A functional personal website and blog." 
+} = Astro.props;
+
+const currentPath = Astro.url.pathname;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/rss.xml" />
+
+    <!-- Inline script to prevent theme flash -->
+    <script is:inline>
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      }
+    </script>
+  </head>
+  <body>
+    <div class="layout-container">
+      <header class="site-header">
+        <div class="site-title-row">
+          <a href="/" class="site-title">Murat</a>
+          <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle color theme">
+            Toggle Theme
+          </button>
+        </div>
+        <div class="site-description">
+          Personal website, software projects, and notes.
+        </div>
+        <nav class="site-nav">
+          <ul class="nav-links">
+            <li><a href="/" class={currentPath === '/' ? 'active' : ''}>Home</a></li>
+            <li><a href="/blog" class={currentPath.startsWith('/blog') ? 'active' : ''}>Blog</a></li>
+            <li><a href="/archive" class={currentPath.startsWith('/archive') ? 'active' : ''}>Archive</a></li>
+            <li><a href="/tags" class={currentPath.startsWith('/tags') ? 'active' : ''}>Tags</a></li>
+            <li><a href="/rss.xml">RSS</a></li>
+          </ul>
+        </nav>
+      </header>
+
+      <main id="main-content">
+        <slot />
+      </main>
+    </div>
+
+    <script is:inline>
+      const toggle = document.getElementById('theme-toggle');
+      if (toggle) {
+        toggle.addEventListener('click', () => {
+          const current = document.documentElement.getAttribute('data-theme');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          let next;
+          if (!current) {
+            next = prefersDark ? 'light' : 'dark';
+          } else if (current === 'dark') {
+            next = 'light';
+          } else {
+            next = 'dark';
+          }
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+        });
+      }
+
+      // Ensure all external links open in a new tab safely
+      document.addEventListener('click', (e) => {
+        const target = e.target;
+        if (!target || !(target instanceof Element)) return;
+        const link = target.closest('a');
+        if (link && link.href) {
+          try {
+            const url = new URL(link.href, window.location.href);
+            if (url.origin !== window.location.origin) {
+              link.target = '_blank';
+              link.rel = 'noopener noreferrer';
+            }
+          } catch {
+            // ignore malformed URLs
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

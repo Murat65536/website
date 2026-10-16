@@ -1,0 +1,94 @@
+---
+interface Props {
+  birthDate?: string; // e.g. "2008-09-01" or ISO timestamp
+  precision?: number;
+  suffix?: string;
+  prefix?: string;
+}
+
+const {
+  birthDate = '2008-01-01T00:00:00',
+  precision = 9,
+  suffix = 'y.o.',
+  prefix = '',
+} = Astro.props;
+
+// Initial static calculation at build-time to avoid empty layout shifts
+const birth = new Date(birthDate);
+const now = new Date();
+const initialAge = (now.getTime() - birth.getTime()) / (365.2425 * 24 * 3600 * 1000);
+---
+
+<span 
+  class="real-time-age-wrapper" 
+  data-birth={birthDate} 
+  data-precision={precision}
+>
+  {prefix && <span class="age-prefix">{prefix} </span>}
+  <span class="age-number">{initialAge.toFixed(precision)}</span>
+  {suffix && <span class="age-suffix"> {suffix}</span>}
+</span>
+
+<style>
+  .real-time-age-wrapper {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .age-number {
+    font-weight: 600;
+    color: var(--text);
+  }
+  .age-suffix, .age-prefix {
+    color: var(--text-muted);
+    font-weight: normal;
+  }
+</style>
+
+<script>
+  function calculatePreciseAge(birthDate: Date, now: Date): number {
+    const bY = birthDate.getFullYear();
+    const bM = birthDate.getMonth();
+    const bD = birthDate.getDate();
+    const bH = birthDate.getHours();
+    const bMin = birthDate.getMinutes();
+    const bS = birthDate.getSeconds();
+    const bMs = birthDate.getMilliseconds();
+    const nY = now.getFullYear();
+
+    const thisBday = new Date(nY, bM, bD, bH, bMin, bS, bMs);
+    const hadBday = now.getTime() >= thisBday.getTime();
+
+    const lastBday = hadBday ? thisBday : new Date(nY - 1, bM, bD, bH, bMin, bS, bMs);
+    const nextBday = hadBday ? new Date(nY + 1, bM, bD, bH, bMin, bS, bMs) : thisBday;
+
+    const years = hadBday ? nY - bY : nY - bY - 1;
+    const fraction = (now.getTime() - lastBday.getTime()) / (nextBday.getTime() - lastBday.getTime());
+
+    return years + fraction;
+  }
+
+  function initAgeCounters() {
+    const elements = document.querySelectorAll<HTMLElement>('.real-time-age-wrapper');
+    elements.forEach(el => {
+      const birthStr = el.dataset.birth;
+      if (!birthStr) return;
+      const birth = new Date(birthStr);
+      const precision = parseInt(el.dataset.precision || '9', 10);
+      const numSpan = el.querySelector('.age-number');
+      if (!numSpan) return;
+
+      const update = () => {
+        const age = calculatePreciseAge(birth, new Date());
+        numSpan.textContent = age.toFixed(precision);
+      };
+
+      update();
+      const interval = setInterval(update, 40);
+      window.addEventListener('beforeunload', () => clearInterval(interval), { once: true });
+    });
+  }
+
+  initAgeCounters();
+  document.addEventListener('astro:page-load', initAgeCounters);
+</script>
