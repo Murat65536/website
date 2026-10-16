@@ -1,19 +1,42 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import WakaTimeStats from '../components/WakaTimeStats.astro';
-import RealTimeAge from '../components/RealTimeAge.astro';
+import { getWakaTimeStats } from '../lib/wakatime';
+import { getPreciseAge } from '../lib/age';
 
 const BIRTH_DATE = '2010-08-20T00:00:00';
+const stats = await getWakaTimeStats();
+const age = getPreciseAge(BIRTH_DATE);
 ---
 
 <BaseLayout title="Murat Bayraktar">
   <article>
     <p>Hey! I'm Murat. I'm a high school student and programmer.</p>
     <p>I code, I do math, and I write.</p>
-    <p style="color: var(--text-muted);">
-      Age: <RealTimeAge birthDate={BIRTH_DATE} precision={9} />
-    </p>
+    <p><span class="label">Age:</span> <span id="age">{age}</span> yrs</p>
 
-    <WakaTimeStats />
+    <h4>Coding Activity</h4>
+    <p><span class="label">Since:</span> {stats.since}</p>
+    <p><span class="label">Total:</span> {stats.totalHours.toLocaleString()} hrs</p>
+    <p><span class="label">Daily Average:</span> {stats.dailyAverageHours} hrs</p>
+    <p><span class="label">Last 30 Days:</span> {stats.last30DaysHours} hrs</p>
+    <p><span class="label">Languages:</span> {stats.languages.map(l => `${l.name} (${l.percent}%)`).join(', ')}</p>
+    <p><span class="label">Editors:</span> {stats.editors.map(e => `${e.name} (${e.percent}%)`).join(', ')}</p>
+    <p><span class="label">Operating Systems:</span> {stats.os.map(o => `${o.name} (${o.percent}%)`).join(', ')}</p>
   </article>
 </BaseLayout>
+
+<style>
+  .label {
+      color: var(--text-muted);
+      font-weight: 600;
+  }
+  #age {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+  }
+</style>
+
+<script>
+  import { initAgeTicker } from '../lib/age';
+  initAgeTicker('age', '2010-08-20T00:00:00');
+</script>
