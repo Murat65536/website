@@ -15,6 +15,7 @@ export interface WakaTimeStats {
   totalHours: number;
   dailyAverageHours: number;
   last30DaysHours: number;
+  since: string;
   rangeLabel: string;
   languages: WakaTimeItem[];
   editors: WakaTimeItem[];
@@ -163,11 +164,21 @@ export async function getWakaTimeStats(): Promise<WakaTimeStats> {
 
   const os: WakaTimeItem[] = (rawData.os?.data || []).slice(0, 3);
 
+  // Extract dynamic start date from WakaTime data
+  let since = 'May 2024';
+  if (days[0]?.date) {
+    const d = new Date(days[0].date + 'T00:00:00');
+    since = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  } else if (rawData.activity?.human_readable_range) {
+    since = rawData.activity.human_readable_range.replace(/^since\s+/i, '');
+  }
+
   return {
     totalHours,
     dailyAverageHours,
     last30DaysHours,
-    rangeLabel: rawData.activity?.human_readable_range || 'since May 2024',
+    since,
+    rangeLabel: rawData.activity?.human_readable_range || `since ${since}`,
     languages,
     editors,
     os,
