@@ -13,6 +13,7 @@ const {
 } = Astro.props;
 
 const currentPath = Astro.url.pathname;
+const canonicalURL = currentPath.startsWith('/404') ? null : new URL(currentPath, Astro.site);
 ---
 
 <!DOCTYPE html>
@@ -22,6 +23,7 @@ const currentPath = Astro.url.pathname;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    {canonicalURL && <link rel="canonical" href={canonicalURL} />}
     <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/rss.xml" />
 
     <!-- Inline script to prevent theme flash -->

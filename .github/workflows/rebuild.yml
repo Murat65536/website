@@ -16,6 +16,6 @@ jobs:
           if [ -z "${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}" ]; then
             echo "CLOUDFLARE_DEPLOY_HOOK secret is not set yet. Skipping."
           else
-            curl -s -X POST "${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}"
+            curl -fsS -X POST "${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}"
             echo "Cloudflare build triggered successfully."
           fi
