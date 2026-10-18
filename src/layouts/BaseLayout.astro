@@ -25,6 +25,14 @@ const canonicalURL = currentPath.startsWith('/404') ? null : new URL(currentPath
     <meta name="description" content={description} />
     {canonicalURL && <link rel="canonical" href={canonicalURL} />}
     <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/rss.xml" />
+
+    <!-- Inline script to restore session theme override and prevent flash -->
+    <script is:inline>
+      const sessionTheme = sessionStorage.getItem('theme');
+      if (sessionTheme) {
+        document.documentElement.setAttribute('data-theme', sessionTheme);
+      }
+    </script>
   </head>
   <body>
     <div class="layout-container">
@@ -56,10 +64,12 @@ const canonicalURL = currentPath.startsWith('/404') ? null : new URL(currentPath
           const current = document.documentElement.getAttribute('data-theme') || (prefersDark ? 'dark' : 'light');
           const next = current === 'dark' ? 'light' : 'dark';
           document.documentElement.setAttribute('data-theme', next);
+          sessionStorage.setItem('theme', next);
         });
       }
 
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        sessionStorage.removeItem('theme');
         document.documentElement.removeAttribute('data-theme');
       });
 
