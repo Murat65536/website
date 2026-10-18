@@ -25,6 +25,7 @@ const canonicalURL = currentPath.startsWith('/404') ? null : new URL(currentPath
     <meta name="description" content={description} />
     {canonicalURL && <link rel="canonical" href={canonicalURL} />}
     <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/rss.xml" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <!-- Inline script to restore session theme override and prevent flash -->
     <script is:inline>
