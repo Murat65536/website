@@ -9,7 +9,7 @@ interface Props {
 
 const { 
   title = "Notebook & Personal Website", 
-  description = "A functional personal website and blog." 
+  description = "Something somewhere in the vast unknown." 
 } = Astro.props;
 
 const currentPath = Astro.url.pathname;
@@ -45,8 +45,6 @@ const currentPath = Astro.url.pathname;
           <ul class="nav-links">
             <li><a href="/" class={currentPath === '/' ? 'active' : ''}>Home</a></li>
             <li><a href="/blog" class={currentPath.startsWith('/blog') ? 'active' : ''}>Blog</a></li>
-            <li><a href="/tags" class={currentPath.startsWith('/tags') ? 'active' : ''}>Tags</a></li>
-            <li><a href="/rss.xml">RSS</a></li>
           </ul>
         </nav>
       </header>
@@ -75,7 +73,7 @@ const currentPath = Astro.url.pathname;
         });
       }
 
-      // Ensure all external links open in a new tab safely
+      // Ensure all external links and XML feed links open in a new tab safely
       document.addEventListener('click', (e) => {
         const target = e.target;
         if (!target || !(target instanceof Element)) return;
@@ -83,7 +81,7 @@ const currentPath = Astro.url.pathname;
         if (link && link.href) {
           try {
             const url = new URL(link.href, window.location.href);
-            if (url.origin !== window.location.origin) {
+            if (url.origin !== window.location.origin || url.pathname.endsWith('.xml')) {
               link.target = '_blank';
               link.rel = 'noopener noreferrer';
             }

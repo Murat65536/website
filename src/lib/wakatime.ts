@@ -16,18 +16,9 @@ export interface WakaTimeStats {
   dailyAverageHours: number;
   last30DaysHours: number;
   since: string;
-  rangeLabel: string;
   languages: WakaTimeItem[];
   editors: WakaTimeItem[];
   os: WakaTimeItem[];
-  chart: {
-    linePath: string;
-    areaPath: string;
-    width: number;
-    height: number;
-    xTicks: { label: string; x: number }[];
-    yTicks: { label: string; y: number }[];
-  };
 }
 
 const CONFIG = {
@@ -89,72 +80,6 @@ export async function getWakaTimeStats(): Promise<WakaTimeStats> {
     .reduce((sum, d) => sum + (d.total || 0), 0);
   const last30DaysHours = Math.round(last30DaysSeconds / 3600);
 
-  // Compute cumulative series
-  let cum = 0;
-  const points = days.map((d) => {
-    cum += (d.total || 0) / 3600;
-    return { date: d.date, cum };
-  });
-
-  // Downsample to ~250 points for a lightweight yet smooth SVG curve
-  const sampleRate = Math.max(1, Math.floor(points.length / 250));
-  const sampledPoints = points.filter(
-    (_, i) => i % sampleRate === 0 || i === points.length - 1,
-  );
-
-  const width = 680;
-  const height = 135;
-  const pad = { top: 12, right: 15, bottom: 24, left: 45 };
-  const plotWidth = width - pad.left - pad.right;
-  const plotHeight = height - pad.top - pad.bottom;
-
-  const maxVal = Math.ceil(cum / 500) * 500 || 2500;
-
-  const coords = sampledPoints.map((p, i) => {
-    const x = pad.left + (i / (sampledPoints.length - 1)) * plotWidth;
-    const y = pad.top + plotHeight - (p.cum / maxVal) * plotHeight;
-    return { x: Number(x.toFixed(1)), y: Number(y.toFixed(1)) };
-  });
-
-  const linePath = coords.length
-    ? `M ${coords.map((c) => `${c.x} ${c.y}`).join(" L ")}`
-    : "";
-  const areaPath = coords.length
-    ? `${linePath} L ${coords[coords.length - 1].x} ${pad.top + plotHeight} L ${coords[0].x} ${pad.top + plotHeight} Z`
-    : "";
-
-  // X ticks
-  const xIndices = [
-    0,
-    Math.floor(points.length * 0.33),
-    Math.floor(points.length * 0.66),
-    points.length - 1,
-  ];
-
-  const formatDateTick = (dStr?: string) => {
-    if (!dStr) return "";
-    const date = new Date(dStr + "T00:00:00");
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      year: "2-digit",
-    });
-  };
-
-  const xTicks = xIndices.map((idx) => {
-    const x = pad.left + (idx / (points.length - 1)) * plotWidth;
-    return {
-      label: formatDateTick(points[idx]?.date),
-      x: Number(x.toFixed(1)),
-    };
-  });
-
-  // Y ticks (0, half, max)
-  const yTicks = [
-    { label: "0", y: pad.top + plotHeight },
-    { label: `${maxVal / 2}h`, y: pad.top + plotHeight / 2 },
-    { label: `${maxVal}h`, y: pad.top },
-  ];
-
   // Languages breakdown with 'Other' to ensure 100% coverage without gaps
   const rawLangs = rawData.languages?.data || [];
   const topLangs: WakaTimeItem[] = rawLangs.slice(0, 5).map((item) => ({
@@ -203,17 +128,8 @@ export async function getWakaTimeStats(): Promise<WakaTimeStats> {
     dailyAverageHours,
     last30DaysHours,
     since,
-    rangeLabel: rawData.activity?.human_readable_range || `since ${since}`,
     languages,
     editors,
     os,
-    chart: {
-      linePath,
-      areaPath,
-      width,
-      height,
-      xTicks,
-      yTicks,
-    },
   };
 }

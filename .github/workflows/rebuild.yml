@@ -1,0 +1,21 @@
+name: Daily Stats Rebuild
+
+on:
+  schedule:
+    # Trigger Cloudflare to rebuild daily at midnight UTC to refresh live stats
+    - cron: '0 0 * * *'
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  trigger-cloudflare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Cloudflare Pages Deploy Hook
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}" ]; then
+            echo "CLOUDFLARE_DEPLOY_HOOK secret is not set yet. Skipping."
+          else
+            curl -s -X POST "${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}"
+            echo "Cloudflare build triggered successfully."
+          fi

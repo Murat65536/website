@@ -8,7 +8,7 @@ import rehypeExternalLinks from 'rehype-external-links';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://example.com',
+  site: 'https://muratbayraktar.dev',
   integrations: [mdx()],
   markdown: {
     processor: unified({

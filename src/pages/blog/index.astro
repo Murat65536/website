@@ -5,19 +5,44 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 const posts = (await getCollection('blog'))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
+// Collect all unique tags and counts
+const tagCounts = posts.reduce<Record<string, number>>((acc, post) => {
+  post.data.tags?.forEach(tag => {
+    acc[tag] = (acc[tag] || 0) + 1;
+  });
+  return acc;
+}, {});
+
+const sortedTags = Object.entries(tagCounts)
+  .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
 function formatDate(date: Date) {
   return date.toISOString().split('T')[0];
 }
 ---
 
 <BaseLayout title="Blog | Murat" description="Writings, expositions, and technical notes.">
-  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.75rem;">
     <h1>Blog</h1>
-    <a href="/rss.xml" style="font-size: 0.88rem; font-family: var(--font-mono);">[RSS Feed]</a>
+    <a href="/rss.xml" target="_blank" rel="noopener noreferrer" style="font-size: 0.88rem; font-family: var(--font-mono);">[RSS Feed]</a>
   </div>
-  <ul class="post-list">
+
+  {sortedTags.length > 0 && (
+    <div class="tag-filter-bar" aria-label="Filter posts by tag">
+      <button type="button" class="tag-filter-btn active" data-tag="all">
+        All <span class="tag-count">({posts.length})</span>
+      </button>
+      {sortedTags.map(([tag, count]) => (
+        <button type="button" class="tag-filter-btn" data-tag={tag}>
+          #{tag} <span class="tag-count">({count})</span>
+        </button>
+      ))}
+    </div>
+  )}
+
+  <ul class="post-list" id="post-list">
     {posts.map(post => (
-      <li class="post-row">
+      <li class="post-row" data-tags={(post.data.tags || []).join(',')}>
         <div class="post-row-main">
           <div class="post-row-header">
             <span class="post-date">{formatDate(post.data.pubDate)}</span>
@@ -34,11 +59,130 @@ function formatDate(date: Date) {
         {post.data.tags && post.data.tags.length > 0 && (
           <div class="post-tags">
             {post.data.tags.map(tag => (
-              <a href={`/tags/${tag}`} class="tag-badge">#{tag}</a>
+              <button type="button" class="tag-badge" data-filter-tag={tag}>#{tag}</button>
             ))}
           </div>
         )}
       </li>
     ))}
   </ul>
+
+  <p id="no-posts-msg" style="display: none; color: var(--text-muted); margin-top: 1.5rem;">
+    No posts found under this tag.
+  </p>
 </BaseLayout>
+
+<style>
+  .tag-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .tag-filter-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: color 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+  }
+
+  .tag-filter-btn:hover {
+    color: var(--text);
+    border-color: var(--text-muted);
+  }
+
+  .tag-filter-btn.active {
+    color: var(--text);
+    background-color: var(--tag-bg);
+    border-color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .tag-count {
+    color: var(--text-muted);
+    font-weight: normal;
+  }
+
+  /* Reset button style for inline tag badges on post rows */
+  button.tag-badge {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+</style>
+
+<script>
+  function setupTagFiltering() {
+    const filterButtons = document.querySelectorAll<HTMLButtonElement>('.tag-filter-btn');
+    const badgeButtons = document.querySelectorAll<HTMLButtonElement>('button.tag-badge');
+    const postRows = document.querySelectorAll<HTMLElement>('.post-row');
+    const noPostsMsg = document.getElementById('no-posts-msg');
+
+    function applyFilter(selectedTag: string) {
+      let visibleCount = 0;
+
+      postRows.forEach(row => {
+        const rawTags = row.dataset.tags || '';
+        const tags = rawTags.split(',').filter(Boolean);
+        if (selectedTag === 'all' || tags.includes(selectedTag)) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      filterButtons.forEach(btn => {
+        const tag = btn.dataset.tag;
+        if (tag === selectedTag) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      if (noPostsMsg) {
+        noPostsMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+      }
+
+      // Update URL search query without page reload
+      const url = new URL(window.location.href);
+      if (selectedTag === 'all') {
+        url.searchParams.delete('tag');
+      } else {
+        url.searchParams.set('tag', selectedTag);
+      }
+      window.history.replaceState({}, '', url.toString());
+    }
+
+    // Initialize from URL search param if present (e.g. /blog?tag=coding)
+    const initialParams = new URLSearchParams(window.location.search);
+    const initialTag = initialParams.get('tag') || 'all';
+    applyFilter(initialTag);
+
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const tag = btn.dataset.tag || 'all';
+        applyFilter(tag);
+      });
+    });
+
+    badgeButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const tag = btn.dataset.filterTag || 'all';
+        applyFilter(tag);
+      });
+    });
+  }
+
+  setupTagFiltering();
+</script>
