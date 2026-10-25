@@ -7,6 +7,7 @@ export interface CodeforcesStats {
   maxRating: number | string;
   rank: string;
   maxRank: string;
+  problemsSolved: number | string;
 }
 
 const HANDLE = 'Murat65536';
@@ -17,44 +18,59 @@ function capitalize(s?: string): string {
 }
 
 export async function getCodeforcesStats(): Promise<CodeforcesStats> {
-  let data = fallbackData;
+  const stats: CodeforcesStats = {
+    handle: fallbackData.handle || HANDLE,
+    url: `https://codeforces.com/profile/${HANDLE}`,
+    rating: fallbackData.rating ?? '—',
+    maxRating: fallbackData.maxRating ?? '—',
+    rank: typeof fallbackData.rank === 'string' ? capitalize(fallbackData.rank) : '—',
+    maxRank: typeof fallbackData.maxRank === 'string' ? capitalize(fallbackData.maxRank) : '—',
+    problemsSolved: fallbackData.problemsSolved ?? '—',
+  };
 
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3500);
+    const timer = setTimeout(() => controller.abort(), 4000);
 
-    const res = await fetch(`https://codeforces.com/api/user.info?handles=${HANDLE}`, {
-      signal: controller.signal,
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': 'Personal-Website',
-      },
-    });
+    const [infoRes, statusRes] = await Promise.all([
+      fetch(`https://codeforces.com/api/user.info?handles=${HANDLE}`, {
+        signal: controller.signal,
+        headers: { Accept: 'application/json', 'User-Agent': 'Personal-Website' },
+      }).catch(() => null),
+      fetch(`https://codeforces.com/api/user.status?handle=${HANDLE}`, {
+        signal: controller.signal,
+        headers: { Accept: 'application/json', 'User-Agent': 'Personal-Website' },
+      }).catch(() => null),
+    ]);
     clearTimeout(timer);
 
-    if (res.ok) {
-      const json = await res.json();
+    if (infoRes && infoRes.ok) {
+      const json = await infoRes.json();
       if (json.status === 'OK' && Array.isArray(json.result) && json.result[0]) {
         const u = json.result[0];
-        data = {
-          handle: u.handle || HANDLE,
-          rating: u.rating ?? '—',
-          maxRating: u.maxRating ?? '—',
-          rank: capitalize(u.rank),
-          maxRank: capitalize(u.maxRank),
-        };
+        stats.rating = u.rating ?? stats.rating;
+        stats.maxRating = u.maxRating ?? stats.maxRating;
+        stats.rank = capitalize(u.rank);
+        stats.maxRank = capitalize(u.maxRank);
+      }
+    }
+
+    if (statusRes && statusRes.ok) {
+      const json = await statusRes.json();
+      if (json.status === 'OK' && Array.isArray(json.result)) {
+        const solved = new Set<string>();
+        for (const sub of json.result) {
+          if (sub.verdict === 'OK' && sub.problem) {
+            const id = `${sub.problem.contestId || ''}-${sub.problem.index}`;
+            solved.add(id);
+          }
+        }
+        stats.problemsSolved = solved.size;
       }
     }
   } catch {
     // Graceful fallback to cached snapshot on network error or timeout
   }
 
-  return {
-    handle: data.handle || HANDLE,
-    url: `https://codeforces.com/profile/${HANDLE}`,
-    rating: data.rating ?? '—',
-    maxRating: data.maxRating ?? '—',
-    rank: typeof data.rank === 'string' ? capitalize(data.rank) : '—',
-    maxRank: typeof data.maxRank === 'string' ? capitalize(data.maxRank) : '—',
-  };
+  return stats;
 }
