@@ -25,7 +25,7 @@ const canonicalURL = currentPath.startsWith('/404') ? null : new URL(currentPath
     <meta name="description" content={description} />
     {canonicalURL && <link rel="canonical" href={canonicalURL} />}
     <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/rss.xml" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <!-- Inline script to restore session theme override and prevent flash -->
     <script is:inline>
@@ -39,7 +39,7 @@ const canonicalURL = currentPath.startsWith('/404') ? null : new URL(currentPath
     <div class="layout-container">
       <header class="site-header">
         <div class="site-title-row">
-          <a href="/" class="site-title">Murat</a>
+          <a href="/" class="site-title">Murat Bayraktar</a>
           <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle color theme">
             Toggle Theme
           </button>

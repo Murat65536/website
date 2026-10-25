@@ -1,0 +1,58 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getWakaTimeStats } from '../lib/wakatime';
+import { getPreciseAge } from '../lib/age';
+import { getLichessStats } from '../lib/lichess';
+import { getGitHubStats } from '../lib/github';
+import { getCodeforcesStats } from '../lib/codeforces';
+
+const BIRTH_DATE = '2010-08-20T00:00:00';
+const stats = await getWakaTimeStats();
+const chess = await getLichessStats();
+const github = await getGitHubStats();
+const cf = await getCodeforcesStats();
+const age = getPreciseAge(BIRTH_DATE);
+---
+<BaseLayout title="Murat Bayraktar | Verbose">
+  <article>
+    <h3>Stats</h3>
+    <p><span class="label">Age:</span> <span id="age">{age}</span> yrs</p>
+    <p><span class="label">Gender:</span> Male</p>
+    <p><span class="label">Height:</span> 6 ft</p>
+
+
+    <h4>Coding Activity</h4>
+    <p><span class="label">Total Time:</span> {stats.totalHours.toLocaleString()} hrs</p>
+    <p><span class="label">Tracked Since:</span> {stats.since}</p>
+    <p><span class="label">Daily Average:</span> {stats.dailyAverageHours} hrs</p>
+    <p><span class="label">Last 30 Days:</span> {stats.last30DaysHours} hrs</p>
+    <p><span class="label">Languages:</span> {stats.languages.map(l => `${l.name} (${l.percent}%)`).join(', ')}</p>
+    <p><span class="label">Editors:</span> {stats.editors.map(e => `${e.name} (${e.percent}%)`).join(', ')}</p>
+    <p><span class="label">Operating Systems:</span> {stats.os.map(o => `${o.name} (${o.percent}%)`).join(', ')}</p>
+    <p><span class="label">GitHub Contributions:</span> <a href={github.url}>{github.contributions.toLocaleString()}</a> in the past year</p>
+
+    <h4>Chess</h4>
+    <p><span class="label">Handle:</span> <a href={chess.url}>{chess.username}</a></p>
+    <p><span class="label">Rapid Rating:</span> {chess.rapid}</p>
+    <p><span class="label">Blitz Rating:</span> {chess.blitz}</p>
+    <p><span class="label">Bullet Rating:</span> {chess.bullet}</p>
+
+    <h4>Competitive Programming</h4>
+    <p><span class="label">Codeforces Handle:</span> <a href={cf.url}>{cf.handle}</a></p>
+    <p><span class="label">Codeforces Rating:</span> {cf.rating}</p>
+    <p><span class="label">Codeforces Max Rating:</span> {cf.maxRating}</p>
+    <p><span class="label">Codeforces Rank:</span> {cf.rank}</p>
+  </article>
+</BaseLayout>
+
+<style>
+  .label {
+      color: var(--text-muted);
+      font-weight: 600;
+  }
+</style>
+
+<script>
+  import { initAgeTicker } from '../lib/age';
+  initAgeTicker('age', '2010-08-20T00:00:00');
+</script>
