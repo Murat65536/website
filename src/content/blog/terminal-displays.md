@@ -1,6 +1,6 @@
 ---
 title: "Terminal displays"
-description: "An explanation of the convoluted mess that is terminal rendering"
+description: "An explanation of the convoluted mess that is terminal rendering."
 pubDate: "7-20-2026"
 tags: ["coding"]
 ---

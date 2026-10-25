@@ -1,15 +1,5 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getWakaTimeStats } from '../lib/wakatime';
-import { getPreciseAge } from '../lib/age';
-import { getLichessStats } from '../lib/lichess';
-import { getGitHubStats } from '../lib/github';
-
-const BIRTH_DATE = '2010-08-20T00:00:00';
-const stats = await getWakaTimeStats();
-const chess = await getLichessStats();
-const github = await getGitHubStats();
-const age = getPreciseAge(BIRTH_DATE);
 ---
 
 <BaseLayout title="Murat Bayraktar">
