@@ -1,0 +1,105 @@
+{
+  "chess": {
+    "username": "bobbybob65536",
+    "url": "https://lichess.org/@/bobbybob65536",
+    "rapid": "1798",
+    "blitz": "1618",
+    "bullet": "1754"
+  },
+  "github": {
+    "username": "Murat65536",
+    "url": "https://github.com/Murat65536",
+    "contributions": 1375
+  },
+  "wakatime": {
+    "totalHours": 2534,
+    "dailyAverageHours": 2.9,
+    "last30DaysHours": 124,
+    "since": "May 2024",
+    "languages": [
+      {
+        "name": "Java",
+        "percent": 44.1,
+        "color": "#b07219"
+      },
+      {
+        "name": "C++",
+        "percent": 9.4,
+        "color": "#f34b7d"
+      },
+      {
+        "name": "Python",
+        "percent": 8.1,
+        "color": "#3572A5"
+      },
+      {
+        "name": "C",
+        "percent": 7.8,
+        "color": "#555555"
+      },
+      {
+        "name": "Rust",
+        "percent": 7.3,
+        "color": "#dea584"
+      },
+      {
+        "name": "Other",
+        "percent": 23.3,
+        "color": "#6b7280"
+      }
+    ],
+    "editors": [
+      {
+        "name": "VS Code",
+        "percent": 45.5,
+        "color": "#027acd"
+      },
+      {
+        "name": "IntelliJ IDEA",
+        "percent": 28.2,
+        "color": "#2876e1"
+      },
+      {
+        "name": "Neovim",
+        "percent": 14.8,
+        "color": "#068304"
+      },
+      {
+        "name": "Claude Code",
+        "percent": 6.4,
+        "color": "#d97757"
+      },
+      {
+        "name": "Other",
+        "percent": 5.1,
+        "color": "#6b7280"
+      }
+    ],
+    "os": [
+      {
+        "name": "Windows",
+        "percent": 50.6,
+        "color": "#0379d4"
+      },
+      {
+        "name": "Linux",
+        "percent": 49.1,
+        "color": "#f0b912"
+      },
+      {
+        "name": "Unknown OS",
+        "percent": 0.3,
+        "color": "#1f9aef"
+      }
+    ]
+  },
+  "codeforces": {
+    "handle": "Murat65536",
+    "url": "https://codeforces.com/profile/Murat65536",
+    "rating": 1018,
+    "maxRating": 1165,
+    "rank": "Newbie",
+    "maxRank": "Newbie",
+    "problemsSolved": 179
+  }
+}
