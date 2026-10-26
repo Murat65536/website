@@ -7,7 +7,7 @@ export async function GET(context: APIContext) {
   return rss({
     title: "Murat",
     description: "Random shanagins",
-    site: context.site ?? "https://example.com",
+    site: context.site!,
     items: posts
       .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
       .map((post) => ({

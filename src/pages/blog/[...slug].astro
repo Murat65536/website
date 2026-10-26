@@ -26,13 +26,6 @@ function formatDate(date: Date) {
         <time datetime={post.data.pubDate.toISOString()}>
           {formatDate(post.data.pubDate)}
         </time>
-        {post.data.tags && post.data.tags.length > 0 && (
-          <div class="post-tags">
-            {post.data.tags.map(tag => (
-              <a href={`/blog?tag=${tag}`} class="tag-badge">#{tag}</a>
-            ))}
-          </div>
-        )}
       </div>
     </header>
     <div class="article-content">

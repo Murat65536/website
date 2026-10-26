@@ -1,4 +1,3 @@
-/* Modern Functional Stylesheet - Inspired by Evan Chen's minimal academic notebook */
 :root {
   --bg: #fafafa;
   --bg-card: #ffffff;
@@ -314,14 +313,8 @@ li {
   color: var(--tag-text);
   padding: 0.1rem 0.45rem;
   border-radius: 3px;
-  text-decoration: none;
   position: relative;
   z-index: 2;
-}
-
-.tag-badge:hover {
-  text-decoration: underline;
-  background-color: var(--border-muted);
 }
 
 
