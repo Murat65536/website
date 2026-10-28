@@ -1,0 +1,842 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { wakatime as stats } from '../data/stats.json';
+
+const chart = stats.chart;
+
+const tabs = [
+  { id: 'languages', label: 'Languages', layers: chart?.categories?.languages || [] },
+  { id: 'editors', label: 'Editors', layers: chart?.categories?.editors || [] },
+  { id: 'os', label: 'Operating Systems', layers: chart?.categories?.os || [] },
+];
+
+const dates = chart?.dates || [];
+const maxSliderIdx = Math.max(0, dates.length - 1);
+const formatDateRangeSSR = (dStr?: string) => {
+  if (!dStr) return '';
+  const d = new Date(dStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+};
+const startDate = formatDateRangeSSR(dates[0]);
+const endDate = formatDateRangeSSR(dates[maxSliderIdx]);
+---
+
+<BaseLayout title="Murat Bayraktar | Coding Activity Chart">
+  <article>
+    <div class="breadcrumb">
+      <a href="/stats">Stats</a>
+    </div>
+
+    <h3>Coding Activity Chart</h3>
+
+    <!-- Tab navigation -->
+    <nav class="tabs-nav" aria-label="Coding chart breakdowns">
+      {tabs.map((tab, idx) => (
+        <button 
+          type="button" 
+          class={`tab-btn ${idx === 0 ? 'active' : ''}`} 
+          data-tab={tab.id}
+          role="tab"
+          aria-selected={idx === 0 ? "true" : "false"}
+          aria-controls={`panel-${tab.id}`}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </nav>
+
+    {chart ? (
+      <div class="panels-container">
+        {tabs.map((tab, idx) => (
+          <div 
+            id={`panel-${tab.id}`} 
+            class={`tab-panel ${idx === 0 ? 'active' : ''}`}
+            role="tabpanel"
+            aria-labelledby={tab.id}
+          >
+            <!-- Legend -->
+            <div class="legend" aria-label={`${tab.label} legend`}>
+              {tab.layers.map((layer) => (
+                <div class="legend-item">
+                  <span class="legend-color" style={`background-color: ${layer.color};`} />
+                  <span class="legend-name">{layer.name}</span>
+                  <span class="legend-meta">{layer.totalHours.toLocaleString()} hrs ({layer.percent}%)</span>
+                </div>
+              ))}
+            </div>
+
+            <!-- SVG Chart -->
+            <div class="chart-wrapper">
+              <svg 
+                viewBox={`0 0 ${chart.width} ${chart.height}`} 
+                class="stacked-svg"
+                aria-label={`Cumulative coding hours by ${tab.label.toLowerCase()} stacked area chart`}
+              >
+                <!-- Horizontal grid lines & Y ticks -->
+                <g class="y-ticks-group">
+                  {chart.yTicks.map((tick) => (
+                    <g class="y-tick-row">
+                      <line 
+                        x1="45" 
+                        y1={tick.y} 
+                        x2={chart.width - 15} 
+                        y2={tick.y} 
+                        stroke="var(--border-muted)" 
+                        stroke-width="1" 
+                        stroke-dasharray="2 3"
+                      />
+                      <text 
+                        x="38" 
+                        y={tick.y + 3} 
+                        text-anchor="end" 
+                        class="chart-tick-text"
+                      >
+                        {tick.label}
+                      </text>
+                    </g>
+                  ))}
+                </g>
+
+                <!-- Stacked area bands -->
+                <g class="layers-group">
+                  {tab.layers.map((layer) => (
+                    <path 
+                      d={layer.path} 
+                      fill={layer.color} 
+                      fill-opacity="0.82" 
+                      class="layer-path"
+                    >
+                      <title>{layer.name}: {layer.totalHours.toLocaleString()} hrs ({layer.percent}%)</title>
+                    </path>
+                  ))}
+                </g>
+
+                <!-- X-axis ticks -->
+                <g class="x-ticks-group">
+                  {chart.xTicks.map((tick, idx) => (
+                    <text 
+                      x={tick.x} 
+                      y={chart.height - 6} 
+                      text-anchor={tick.anchor || (idx === 0 ? "start" : idx === chart.xTicks.length - 1 ? "end" : "middle")} 
+                      class="chart-tick-text"
+                    >
+                      {tick.label}
+                    </text>
+                  ))}
+                </g>
+
+                <!-- Contour indicators on hover -->
+                <g class="hover-dots" pointer-events="none"></g>
+              </svg>
+              <!-- Hover popup tooltip -->
+              <div class="chart-tooltip" hidden></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p>Chart data unavailable.</p>
+    )}
+
+    <!-- Date range dual slider -->
+    {chart && dates.length > 1 && (
+      <div class="range-slider-container">
+        <div class="range-info">
+          <span class="range-dates" id="range-dates">{startDate} – {endDate}</span>
+          <span class="range-meta" id="range-meta">{stats.totalHours.toLocaleString()} hrs</span>
+        </div>
+        <div class="dual-slider">
+          <div class="slider-rail"></div>
+          <div class="slider-fill" id="slider-fill" style="left: 0%; right: 0%;"></div>
+          <input 
+            type="range" 
+            id="range-min" 
+            min="0" 
+            max={maxSliderIdx} 
+            value="0" 
+            step="1" 
+            aria-label="Start date" 
+          />
+          <input 
+            type="range" 
+            id="range-max" 
+            min="0" 
+            max={maxSliderIdx} 
+            value={maxSliderIdx} 
+            step="1" 
+            aria-label="End date" 
+          />
+        </div>
+      </div>
+    )}
+
+    {chart && (
+      <script 
+        type="application/json" 
+        id="chart-data" 
+        is:inline 
+        set:html={JSON.stringify({
+          dates: chart.dates || [],
+          series: chart.series || {},
+          width: chart.width,
+          height: chart.height,
+          pad: { top: 15, right: 15, bottom: 25, left: 45 },
+          categories: {
+            languages: tabs[0].layers.map(l => ({ name: l.name, color: l.color })),
+            editors: tabs[1].layers.map(l => ({ name: l.name, color: l.color })),
+            os: tabs[2].layers.map(l => ({ name: l.name, color: l.color })),
+          }
+        })} 
+      />
+    )}
+  </article>
+</BaseLayout>
+
+<style>
+  .breadcrumb {
+    margin-bottom: 1.25rem;
+    font-size: 0.9rem;
+  }
+  .tabs-nav {
+    display: flex;
+    gap: 0.35rem;
+    margin: 1.5rem 0 1.25rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs-nav::-webkit-scrollbar {
+    display: none;
+  }
+  .tab-btn {
+    position: relative;
+    background-color: var(--code-bg);
+    border: 1px solid var(--border-muted);
+    border-bottom: 1px solid var(--border);
+    padding: 0.45rem 1rem;
+    border-radius: 6px 6px 0 0;
+    font-size: 0.88rem;
+    font-family: inherit;
+    color: var(--text-muted);
+    cursor: pointer;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  }
+  .tab-btn:hover {
+    color: var(--text);
+    background-color: var(--bg-card);
+    border-color: var(--border);
+    border-bottom-color: var(--border);
+  }
+  .tab-btn.active {
+    color: var(--text);
+    background-color: var(--bg);
+    border-color: var(--border);
+    border-bottom-color: var(--bg);
+    font-weight: 600;
+    z-index: 2;
+  }
+  /* Dual range slider */
+  .range-slider-container {
+    margin: 1.5rem 0 1.5rem;
+    padding: 0.65rem 0.85rem;
+    background-color: var(--code-bg);
+    border: 1px solid var(--border-muted);
+    border-radius: 6px;
+  }
+  .range-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .range-dates {
+    font-weight: 600;
+    color: var(--text);
+  }
+  .range-meta {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+  .dual-slider {
+    position: relative;
+    height: 22px;
+    display: flex;
+    align-items: center;
+  }
+  .slider-rail {
+    position: absolute;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+  }
+  .slider-fill {
+    position: absolute;
+    height: 4px;
+    background: var(--link);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .dual-slider input[type="range"] {
+    position: absolute;
+    width: 100%;
+    height: 22px;
+    margin: 0;
+    background: transparent;
+    pointer-events: none;
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+  }
+  .dual-slider input[type="range"]::-webkit-slider-thumb {
+    pointer-events: auto;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--link);
+    cursor: grab;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.1s ease;
+  }
+  .dual-slider input[type="range"]::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    transform: scale(1.2);
+  }
+  .dual-slider input[type="range"]::-moz-range-thumb {
+    pointer-events: auto;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--link);
+    cursor: grab;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+  .dual-slider input[type="range"]::-moz-range-thumb:active {
+    cursor: grabbing;
+    transform: scale(1.2);
+  }
+  .dual-slider input[type="range"]:focus {
+    z-index: 2;
+  }
+  .panels-container {
+    margin: 1rem 0 2rem;
+  }
+  .tab-panel {
+    display: none;
+  }
+  .tab-panel.active {
+    display: block;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 0.5rem 1.25rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    min-height: 2.9rem;
+  }
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .legend-color {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .legend-name {
+    font-weight: 500;
+  }
+  .legend-meta {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+  .chart-wrapper {
+    width: 100%;
+    position: relative;
+    cursor: crosshair;
+  }
+  .stacked-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    touch-action: pan-y;
+  }
+  .chart-tooltip {
+    position: absolute;
+    top: 8px;
+    pointer-events: none;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+    z-index: 20;
+    min-width: 150px;
+    transition: opacity 0.1s ease;
+  }
+  .tooltip-date {
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.2rem;
+    font-size: 0.82rem;
+  }
+  .tooltip-total {
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    margin-bottom: 0.35rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--border-muted);
+  }
+  .tooltip-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .tooltip-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.78rem;
+  }
+  .tooltip-item-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .tooltip-item-color {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .tooltip-item-hours {
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+  }
+  .chart-tick-text {
+    font-size: 10px;
+    fill: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+  .layer-path {
+    transition: fill-opacity 0.15s ease;
+  }
+  .layer-path:hover {
+    fill-opacity: 0.98;
+  }
+  .hover-dot {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+  }
+</style>
+
+<script>
+  interface ChartData {
+    dates: string[];
+    series: Record<string, number[][]>;
+    width: number;
+    height: number;
+    pad: { top: number; right: number; bottom: number; left: number };
+    categories: Record<string, Array<{ name: string; color: string }>>;
+  }
+
+  const dataScript = document.getElementById('chart-data');
+  const chartData: ChartData | null = dataScript ? JSON.parse(dataScript.textContent || 'null') : null;
+
+  let currentTab = 'languages';
+  const currentMaxVals: Record<string, number> = {};
+  const minInput = document.getElementById('range-min') as HTMLInputElement | null;
+  const maxInput = document.getElementById('range-max') as HTMLInputElement | null;
+  const sliderFill = document.getElementById('slider-fill');
+  const rangeDatesEl = document.getElementById('range-dates');
+  const rangeMetaEl = document.getElementById('range-meta');
+
+  function formatDateTick(dStr: string): string {
+    if (!dStr) return '';
+    const d = new Date(dStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+  }
+
+  function formatDateRange(dStr: string): string {
+    if (!dStr) return '';
+    const d = new Date(dStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  }
+
+  function renderChart() {
+    if (!chartData || !minInput || !maxInput) return;
+
+    const { dates, series, width, height, pad, categories } = chartData;
+    const maxIdx = dates.length - 1;
+    let sIdx = parseInt(minInput.value, 10);
+    let eIdx = parseInt(maxInput.value, 10);
+
+    if (isNaN(sIdx) || isNaN(eIdx)) return;
+    if (sIdx >= eIdx) sIdx = Math.max(0, eIdx - 1);
+    if (eIdx <= sIdx) eIdx = Math.min(maxIdx, sIdx + 1);
+
+    // Update track highlight
+    if (sliderFill) {
+      sliderFill.style.left = `${(sIdx / maxIdx) * 100}%`;
+      sliderFill.style.right = `${100 - (eIdx / maxIdx) * 100}%`;
+    }
+
+    // Update dates label
+    if (rangeDatesEl) {
+      rangeDatesEl.textContent = `${formatDateRange(dates[sIdx])} – ${formatDateRange(dates[eIdx])}`;
+    }
+
+    const plotWidth = width - pad.left - pad.right;
+    const plotHeight = height - pad.top - pad.bottom;
+    const msDiff = new Date(dates[eIdx] + 'T00:00:00').getTime() - new Date(dates[sIdx] + 'T00:00:00').getTime();
+    const numDays = Math.max(1, Math.round(msDiff / (1000 * 60 * 60 * 24)));
+
+    const tabs = ['languages', 'editors', 'os'];
+    tabs.forEach((tabId) => {
+      const panel = document.getElementById(`panel-${tabId}`);
+      if (!panel) return;
+
+      const catSeries = series[tabId];
+      const catTargets = categories[tabId];
+      if (!catSeries || !catTargets) return;
+
+      const numLayers = catTargets.length;
+      const targetWindowHours: number[] = [];
+
+      for (let l = 0; l < numLayers; l++) {
+        const cumEnd = (catSeries[eIdx]?.[l + 1] ?? 0) - (catSeries[eIdx]?.[l] ?? 0);
+        const cumStart = (catSeries[sIdx]?.[l + 1] ?? 0) - (catSeries[sIdx]?.[l] ?? 0);
+        targetWindowHours.push(Math.max(0, cumEnd - cumStart));
+      }
+
+      const totalWindowHours = targetWindowHours.reduce((a, b) => a + b, 0);
+
+      if (tabId === currentTab && rangeMetaEl) {
+        const avg = (totalWindowHours / numDays).toFixed(1);
+        rangeMetaEl.textContent = `${Math.round(totalWindowHours).toLocaleString()} hrs (~${avg} hrs/day)`;
+      }
+
+      // Update legend items
+      const legendMetaEls = panel.querySelectorAll('.legend-meta');
+      targetWindowHours.forEach((hrs, l) => {
+        if (legendMetaEls[l]) {
+          const pct = totalWindowHours > 0 ? ((hrs / totalWindowHours) * 100).toFixed(1) : '0.0';
+          legendMetaEls[l].textContent = `${Math.round(hrs).toLocaleString()} hrs (${pct}%)`;
+        }
+      });
+
+      // Compute Y-scale
+      const safeTotal = Math.max(1, totalWindowHours);
+      let stepFactor = 10;
+      if (safeTotal > 1500) stepFactor = 500;
+      else if (safeTotal > 500) stepFactor = 200;
+      else if (safeTotal > 100) stepFactor = 50;
+      else if (safeTotal > 30) stepFactor = 10;
+      else stepFactor = 5;
+
+      const maxVal = Math.ceil(safeTotal / stepFactor) * stepFactor || stepFactor;
+      currentMaxVals[tabId] = maxVal;
+      const yStep = maxVal >= 2500 ? 1000 : (maxVal >= 1000 ? 500 : (maxVal >= 250 ? 100 : (maxVal >= 50 ? 25 : Math.max(1, Math.round(maxVal / 4)))));
+
+      const getY = (val: number) => Number((pad.top + plotHeight - (val / maxVal) * plotHeight).toFixed(1));
+
+      // Update Y-ticks
+      const yTicksGroup = panel.querySelector('.y-ticks-group');
+      if (yTicksGroup) {
+        let html = '';
+        for (let v = 0; v <= maxVal; v += yStep) {
+          const y = getY(v);
+          html += `<g class="y-tick-row"><line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="var(--border-muted)" stroke-width="1" stroke-dasharray="2 3" /><text x="${pad.left - 7}" y="${y + 3}" text-anchor="end" class="chart-tick-text">${v}h</text></g>`;
+        }
+        yTicksGroup.innerHTML = html;
+      }
+
+      // Update X-ticks
+      const xTicksGroup = panel.querySelector('.x-ticks-group');
+      if (xTicksGroup) {
+        const tickIndices = [
+          sIdx,
+          sIdx + Math.floor((eIdx - sIdx) * 0.33),
+          sIdx + Math.floor((eIdx - sIdx) * 0.66),
+          eIdx,
+        ];
+        let html = '';
+        tickIndices.forEach((idx, i) => {
+          const x = Number((pad.left + (i / 3) * plotWidth).toFixed(1));
+          const anchor = i === 0 ? 'start' : (i === tickIndices.length - 1 ? 'end' : 'middle');
+          html += `<text x="${x}" y="${height - 6}" text-anchor="${anchor}" class="chart-tick-text">${formatDateTick(dates[idx])}</text>`;
+        });
+        xTicksGroup.innerHTML = html;
+      }
+
+      // Compute stacked area curves
+      const count = Math.max(1, eIdx - sIdx);
+      const upperPoints: string[][] = Array.from({ length: numLayers }, () => []);
+      const lowerPoints: string[][] = Array.from({ length: numLayers }, () => []);
+
+      for (let j = sIdx; j <= eIdx; j++) {
+        const x = Number((pad.left + ((j - sIdx) / count) * plotWidth).toFixed(1));
+        let stack = 0;
+        const levels = [0];
+
+        for (let l = 0; l < numLayers; l++) {
+          const cumJ = (catSeries[j]?.[l + 1] ?? 0) - (catSeries[j]?.[l] ?? 0);
+          const cumS = (catSeries[sIdx]?.[l + 1] ?? 0) - (catSeries[sIdx]?.[l] ?? 0);
+          stack += Math.max(0, cumJ - cumS);
+          levels.push(stack);
+        }
+
+        for (let l = 0; l < numLayers; l++) {
+          upperPoints[l].push(`${x} ${getY(levels[l + 1])}`);
+          lowerPoints[l].unshift(`${x} ${getY(levels[l])}`);
+        }
+      }
+
+      const paths = panel.querySelectorAll<SVGPathElement>('.layers-group path');
+      for (let l = 0; l < numLayers; l++) {
+        const pathEl = paths[l];
+        if (pathEl) {
+          const pathStr = `M ${upperPoints[l].join(' L ')} L ${lowerPoints[l].join(' L ')} Z`;
+          pathEl.setAttribute('d', pathStr);
+          const title = pathEl.querySelector('title');
+          if (title) {
+            const hrs = targetWindowHours[l];
+            const pct = totalWindowHours > 0 ? ((hrs / totalWindowHours) * 100).toFixed(1) : '0.0';
+            title.textContent = `${catTargets[l].name}: ${Math.round(hrs).toLocaleString()} hrs (${pct}%)`;
+          }
+        }
+      }
+    });
+  }
+
+  let rafId: number | null = null;
+  function scheduleRender() {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(renderChart);
+  }
+
+  minInput?.addEventListener('input', () => {
+    document.querySelectorAll<HTMLElement>('.chart-tooltip').forEach((t) => (t.hidden = true));
+    document.querySelectorAll<SVGGElement>('.hover-dots').forEach((g) => (g.innerHTML = ''));
+    if (minInput && maxInput && parseInt(minInput.value, 10) >= parseInt(maxInput.value, 10)) {
+      minInput.value = (parseInt(maxInput.value, 10) - 1).toString();
+    }
+    scheduleRender();
+  });
+
+  maxInput?.addEventListener('input', () => {
+    document.querySelectorAll<HTMLElement>('.chart-tooltip').forEach((t) => (t.hidden = true));
+    document.querySelectorAll<SVGGElement>('.hover-dots').forEach((g) => (g.innerHTML = ''));
+    if (minInput && maxInput && parseInt(maxInput.value, 10) <= parseInt(minInput.value, 10)) {
+      maxInput.value = (parseInt(minInput.value, 10) + 1).toString();
+    }
+    scheduleRender();
+  });
+
+  function setTab(id: string) {
+    currentTab = id;
+    document.querySelectorAll<HTMLElement>('.chart-tooltip').forEach((t) => (t.hidden = true));
+    document.querySelectorAll<SVGGElement>('.hover-dots').forEach((g) => (g.innerHTML = ''));
+    document.querySelectorAll<HTMLButtonElement>('.tab-btn').forEach((b) => {
+      const match = b.dataset.tab === id;
+      b.classList.toggle('active', match);
+      b.setAttribute('aria-selected', match ? 'true' : 'false');
+    });
+    document.querySelectorAll<HTMLElement>('.tab-panel').forEach((p) => {
+      p.classList.toggle('active', p.id === `panel-${id}`);
+    });
+    scheduleRender();
+  }
+
+  function setupHover() {
+    if (!chartData || !minInput || !maxInput) return;
+    const { dates, series, width, height, pad, categories } = chartData;
+    const plotWidth = width - pad.left - pad.right;
+    const plotHeight = height - pad.top - pad.bottom;
+
+    const panels = document.querySelectorAll<HTMLElement>('.tab-panel');
+    panels.forEach((panel) => {
+      const svg = panel.querySelector<SVGSVGElement>('.stacked-svg');
+      const dotsGroup = panel.querySelector<SVGGElement>('.hover-dots');
+      const tooltip = panel.querySelector<HTMLElement>('.chart-tooltip');
+      if (!svg || !dotsGroup || !tooltip) return;
+
+      function hide() {
+        dotsGroup!.innerHTML = '';
+        tooltip!.hidden = true;
+      }
+
+      function onPointerMove(e: PointerEvent) {
+        const sIdx = parseInt(minInput!.value, 10);
+        const eIdx = parseInt(maxInput!.value, 10);
+        if (isNaN(sIdx) || isNaN(eIdx) || sIdx >= eIdx) {
+          hide();
+          return;
+        }
+
+        const rect = svg!.getBoundingClientRect();
+        const clientX = e.clientX;
+        const svgX = ((clientX - rect.left) / rect.width) * width;
+
+        if (svgX < pad.left || svgX > width - pad.right) {
+          hide();
+          return;
+        }
+
+        const fraction = (svgX - pad.left) / plotWidth;
+        const j = Math.max(sIdx, Math.min(eIdx, Math.round(sIdx + fraction * (eIdx - sIdx))));
+
+        // Snap to the exact X coordinate of sample j
+        const exactSvgX = Number((pad.left + ((j - sIdx) / (eIdx - sIdx)) * plotWidth).toFixed(1));
+
+        // Get category data
+        const tabId = panel.id.replace('panel-', '');
+        const catSeries = series[tabId];
+        const catTargets = categories[tabId];
+        if (!catSeries || !catTargets) return;
+
+        const numLayers = catTargets.length;
+        const maxVal = currentMaxVals[tabId] || 1;
+        const getY = (val: number) => Number((pad.top + plotHeight - (val / maxVal) * plotHeight).toFixed(1));
+
+        // Compute cumulative levels at sample j within the active window
+        let stack = 0;
+        const levels = [0];
+        const itemsData = [];
+
+        for (let l = 0; l < numLayers; l++) {
+          const cumJ = (catSeries[j]?.[l + 1] ?? 0) - (catSeries[j]?.[l] ?? 0);
+          const cumS = (catSeries[sIdx]?.[l + 1] ?? 0) - (catSeries[sIdx]?.[l] ?? 0);
+          const hrs = Math.max(0, cumJ - cumS);
+          stack += hrs;
+          levels.push(stack);
+          itemsData.push({ name: catTargets[l].name, color: catTargets[l].color, hours: Math.round(hrs) });
+        }
+
+        // Render contour indicator dots along active layer contours
+        const dotsToDraw: Array<{ x: number; y: number; color: string }> = [];
+        let lastDotY = 9999;
+
+        for (let l = 0; l < numLayers; l++) {
+          const thickness = levels[l + 1] - levels[l];
+          if (thickness <= 0.05) continue;
+
+          const y = getY(levels[l + 1]);
+          const isTop = levels[l + 1] === levels[numLayers];
+
+          if (isTop) {
+            if (Math.abs(lastDotY - y) < 5 && dotsToDraw.length > 0) {
+              dotsToDraw.pop();
+            }
+            dotsToDraw.push({ x: exactSvgX, y, color: catTargets[l].color });
+            lastDotY = y;
+          } else if (Math.abs(lastDotY - y) >= 5) {
+            dotsToDraw.push({ x: exactSvgX, y, color: catTargets[l].color });
+            lastDotY = y;
+          }
+        }
+
+        let dotsHtml = '';
+        if (dotsToDraw.length === 0) {
+          dotsHtml = `<circle cx="${exactSvgX}" cy="${getY(0)}" r="3" fill="var(--text-muted)" stroke="var(--bg)" stroke-width="1.5" class="hover-dot" />`;
+        } else {
+          dotsHtml = dotsToDraw
+            .map(
+              (dot) =>
+                `<circle cx="${dot.x}" cy="${dot.y}" r="3.5" fill="${dot.color}" stroke="var(--bg)" stroke-width="1.5" class="hover-dot" />`
+            )
+            .join('');
+        }
+        dotsGroup.innerHTML = dotsHtml;
+
+        // Position tooltip to avoid obstructing indicator dots
+        tooltip!.hidden = false;
+        const percentX = (exactSvgX / width) * 100;
+        tooltip!.style.left = `${percentX}%`;
+
+        if (percentX <= 50) {
+          tooltip!.style.transform = 'translateX(14px)';
+        } else {
+          tooltip!.style.transform = 'translateX(calc(-100% - 14px))';
+        }
+
+        const totalAtJ = itemsData.reduce((acc, it) => acc + it.hours, 0);
+        const sortedItems = [...itemsData].sort((a, b) => b.hours - a.hours);
+        const activeItems = sortedItems.filter((it) => it.hours > 0);
+        const displayItems = activeItems.length > 0 ? activeItems : sortedItems.slice(0, 3);
+
+        const d = new Date(dates[j] + 'T00:00:00');
+        const formattedDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        const itemsHtml = displayItems
+          .map(
+            (it) => `
+            <div class="tooltip-item">
+              <span class="tooltip-item-name">
+                <span class="tooltip-item-color" style="background-color: ${it.color};"></span>
+                <span>${it.name}</span>
+              </span>
+              <span class="tooltip-item-hours">${it.hours.toLocaleString()} hrs</span>
+            </div>`
+          )
+          .join('');
+
+        tooltip!.innerHTML = `
+          <div class="tooltip-date">${formattedDate}</div>
+          <div class="tooltip-total">Total: ${totalAtJ.toLocaleString()} hrs</div>
+          <div class="tooltip-items">${itemsHtml}</div>
+        `;
+      }
+
+      svg.addEventListener('pointermove', onPointerMove);
+      svg.addEventListener('pointerleave', hide);
+      svg.addEventListener('pointercancel', hide);
+    });
+  }
+
+  setupHover();
+  renderChart();
+
+  document.querySelector('.tabs-nav')?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.tab-btn');
+    if (btn?.dataset.tab) {
+      setTab(btn.dataset.tab);
+      location.hash = btn.dataset.tab;
+    }
+  });
+
+  window.addEventListener('hashchange', () => {
+    const hash = location.hash.slice(1);
+    if (hash && ['languages', 'editors', 'os'].includes(hash)) {
+      setTab(hash);
+    }
+  });
+
+  if (location.hash) {
+    const initialHash = location.hash.slice(1);
+    if (['languages', 'editors', 'os'].includes(initialHash)) {
+      setTab(initialHash);
+    }
+  }
+</script>

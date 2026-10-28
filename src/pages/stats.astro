@@ -19,11 +19,11 @@ const age = getPreciseAge(BIRTH_DATE);
     <p><span class="label">Tracked Since:</span> {stats.since}</p>
     <p><span class="label">Daily Average:</span> {stats.dailyAverageHours} hrs</p>
     <p><span class="label">Last 30 Days:</span> {stats.last30DaysHours} hrs</p>
-    <p><span class="label">Languages<sup>*</sup>:</span> {stats.languages.map(l => `${l.name} (${l.percent}%)`).join(', ')}</p>
-    <p><span class="label">Editors<sup>*</sup>:</span> {stats.editors.map(e => `${e.name} (${e.percent}%)`).join(', ')}</p>
-    <p><span class="label">Operating Systems<sup>*</sup>:</span> {stats.os.map(o => `${o.name} (${o.percent}%)`).join(', ')}</p>
+    <p><span class="label">Languages:</span> {stats.languages.map(l => `${l.name} (${l.hours.toLocaleString()} hrs)`).join(', ')}</p>
+    <p><span class="label">Editors:</span> {stats.editors.map(e => `${e.name} (${e.hours.toLocaleString()} hrs)`).join(', ')}</p>
+    <p><span class="label">Operating Systems:</span> {stats.os.map(o => `${o.name} (${o.hours.toLocaleString()} hrs)`).join(', ')}</p>
     <p><span class="label">GitHub Contributions:</span> <a href={github.url}>{github.contributions.toLocaleString()}</a> in the past year</p>
-    <p class="footnote"><sup>*</sup>Percentages are relative to the total tracked programming time.</p>
+    <p class="footnote">See the <a href="/coding-activity-chart">Coding Activity Chart</a> for graphs for a more comprehensive breakdown of coding stats.</p>
 
     <h4>Chess</h4>
     <p><span class="label">Handle:</span> <a href={chess.url}>{chess.username}</a></p>
