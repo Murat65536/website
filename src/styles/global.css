@@ -109,6 +109,14 @@ header.site-header {
   margin-bottom: 0.75rem;
 }
 
+.site-title-heading {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: normal;
+}
+
 .site-title {
   font-size: 1.5rem;
   font-weight: 700;
@@ -119,12 +127,6 @@ header.site-header {
 
 .site-title:hover {
   text-decoration: underline;
-}
-
-.site-description {
-  font-size: 0.95rem;
-  color: var(--text-muted);
-  margin-bottom: 1rem;
 }
 
 nav.site-nav {
@@ -139,6 +141,8 @@ nav.site-nav {
   display: flex;
   gap: 1.25rem;
   list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
 }
 
 .nav-links a {
@@ -232,10 +236,6 @@ li {
   transition: background-color 0.12s ease;
 }
 
-.post-row:last-child {
-  border-bottom: 1px solid var(--border-muted);
-}
-
 .post-row:hover {
   background-color: var(--code-bg);
 }
@@ -258,14 +258,6 @@ li {
   align-items: baseline;
   gap: 0.85rem;
   flex-wrap: wrap;
-}
-
-.post-row-left {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-  flex: 1;
-  min-width: 0;
 }
 
 .post-date {
@@ -440,18 +432,3 @@ blockquote {
   border-left: 2px solid var(--border);
   margin: 1rem 0;
 }
-
-
-/* Footer */
-footer.site-footer {
-  margin-top: 3rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-muted);
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-

@@ -1,19 +1,33 @@
 ---
-import 'katex/dist/katex.min.css';
 import '../styles/global.css';
 
+const SITE_NAME = 'Murat Bayraktar';
+
 interface Props {
+  /** Page name; the site name is appended automatically. Omit on the home page. */
   title?: string;
-  description?: string;
+  type?: 'website' | 'article';
+  publishedTime?: Date;
+  modifiedTime?: Date;
 }
 
-const { 
-  title = "Notebook & Personal Website", 
-  description = "Something somewhere in the vast unknown." 
+const {
+  title,
+  type = 'website',
+  publishedTime,
+  modifiedTime,
 } = Astro.props;
 
+const fullTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
 const currentPath = Astro.url.pathname;
+const isHome = currentPath === '/';
 const canonicalURL = currentPath.startsWith('/404') ? null : new URL(currentPath, Astro.site);
+const SiteTitleTag = isHome ? 'h1' : 'div';
+
+const navLinks = [
+  { href: '/', label: 'Home', active: isHome },
+  { href: '/blog', label: 'Blog', active: currentPath.startsWith('/blog') },
+];
 ---
 
 <!DOCTYPE html>
@@ -21,17 +35,30 @@ const canonicalURL = currentPath.startsWith('/404') ? null : new URL(currentPath
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content={description} />
+    <title>{fullTitle}</title>
     {canonicalURL && <link rel="canonical" href={canonicalURL} />}
-    <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/rss.xml" />
+    <link rel="alternate" type="application/rss+xml" title={`${SITE_NAME} – Blog`} href="/rss.xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
 
-    <!-- Inline script to restore session theme override and prevent flash -->
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={title ?? SITE_NAME} />
+    {canonicalURL && <meta property="og:url" content={canonicalURL} />}
+    {publishedTime && <meta property="article:published_time" content={publishedTime.toISOString()} />}
+    {modifiedTime && <meta property="article:modified_time" content={modifiedTime.toISOString()} />}
+    <meta name="twitter:card" content="summary" />
+
+    <!-- Inline script to restore the saved theme override and prevent flash -->
     <script is:inline>
-      const sessionTheme = sessionStorage.getItem('theme');
-      if (sessionTheme) {
-        document.documentElement.setAttribute('data-theme', sessionTheme);
+      try {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+          document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+      } catch {
+        // storage unavailable (e.g. blocked cookies); fall back to the system theme
       }
     </script>
   </head>
@@ -39,15 +66,16 @@ const canonicalURL = currentPath.startsWith('/404') ? null : new URL(currentPath
     <div class="layout-container">
       <header class="site-header">
         <div class="site-title-row">
-          <a href="/" class="site-title">Murat Bayraktar</a>
+          <SiteTitleTag class="site-title-heading"><a href="/" class="site-title">{SITE_NAME}</a></SiteTitleTag>
           <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle color theme">
             Toggle Theme
           </button>
         </div>
         <nav class="site-nav">
           <ul class="nav-links">
-            <li><a href="/" class={currentPath === '/' ? 'active' : ''}>Home</a></li>
-            <li><a href="/blog" class={currentPath.startsWith('/blog') ? 'active' : ''}>Blog</a></li>
+            {navLinks.map(({ href, label, active }) => (
+              <li><a href={href} class={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>{label}</a></li>
+            ))}
           </ul>
         </nav>
       </header>
@@ -58,6 +86,15 @@ const canonicalURL = currentPath.startsWith('/404') ? null : new URL(currentPath
     </div>
 
     <script is:inline>
+      function saveTheme(theme) {
+        try {
+          if (theme) localStorage.setItem('theme', theme);
+          else localStorage.removeItem('theme');
+        } catch {
+          // storage unavailable; the choice just won't persist
+        }
+      }
+
       const toggle = document.getElementById('theme-toggle');
       if (toggle) {
         toggle.addEventListener('click', () => {
@@ -65,31 +102,14 @@ const canonicalURL = currentPath.startsWith('/404') ? null : new URL(currentPath
           const current = document.documentElement.getAttribute('data-theme') || (prefersDark ? 'dark' : 'light');
           const next = current === 'dark' ? 'light' : 'dark';
           document.documentElement.setAttribute('data-theme', next);
-          sessionStorage.setItem('theme', next);
+          saveTheme(next);
         });
       }
 
+      // A change of the system theme takes precedence over the saved override
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-        sessionStorage.removeItem('theme');
+        saveTheme(null);
         document.documentElement.removeAttribute('data-theme');
-      });
-
-      // Ensure all external links and XML feed links open in a new tab safely
-      document.addEventListener('click', (e) => {
-        const target = e.target;
-        if (!target || !(target instanceof Element)) return;
-        const link = target.closest('a');
-        if (link && link.href) {
-          try {
-            const url = new URL(link.href, window.location.href);
-            if (url.origin !== window.location.origin || url.pathname.endsWith('.xml')) {
-              link.target = '_blank';
-              link.rel = 'noopener noreferrer';
-            }
-          } catch {
-            // ignore malformed URLs
-          }
-        }
       });
     </script>
   </body>

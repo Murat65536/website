@@ -21,19 +21,19 @@ function formatDate(date: Date) {
 }
 ---
 
-<BaseLayout title="Blog | Murat" description="Writings, expositions, and technical notes.">
-  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.75rem;">
+<BaseLayout title="Blog">
+  <div class="blog-header">
     <h1>Blog</h1>
-    <a href="/rss.xml" target="_blank" rel="noopener noreferrer" style="font-size: 0.88rem; font-family: var(--font-mono);">[RSS Feed]</a>
+    <a href="/rss.xml" target="_blank" rel="noopener noreferrer" class="rss-link">[RSS Feed]</a>
   </div>
 
   {sortedTags.length > 0 && (
-    <div class="tag-filter-bar" aria-label="Filter posts by tag">
-      <button type="button" class="tag-filter-btn active" data-tag="all">
+    <div class="tag-filter-bar" role="group" aria-label="Filter posts by tag">
+      <button type="button" class="tag-filter-btn active" data-tag="all" aria-pressed="true">
         All <span class="tag-count">({posts.length})</span>
       </button>
       {sortedTags.map(([tag, count]) => (
-        <button type="button" class="tag-filter-btn" data-tag={tag}>
+        <button type="button" class="tag-filter-btn" data-tag={tag} aria-pressed="false">
           #{tag} <span class="tag-count">({count})</span>
         </button>
       ))}
@@ -67,12 +67,29 @@ function formatDate(date: Date) {
     ))}
   </ul>
 
-  <p id="no-posts-msg" style="display: none; color: var(--text-muted); margin-top: 1.5rem;">
+  <p id="no-posts-msg" class="no-posts-msg" hidden>
     No posts found under this tag.
   </p>
 </BaseLayout>
 
 <style>
+  .blog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.75rem;
+  }
+
+  .rss-link {
+    font-size: 0.88rem;
+    font-family: var(--font-mono);
+  }
+
+  .no-posts-msg {
+    color: var(--text-muted);
+    margin-top: 1.5rem;
+  }
+
   .tag-filter-bar {
     display: flex;
     flex-wrap: wrap;
@@ -139,16 +156,13 @@ function formatDate(date: Date) {
       });
 
       filterButtons.forEach(btn => {
-        const tag = btn.dataset.tag;
-        if (tag === selectedTag) {
-          btn.classList.add('active');
-        } else {
-          btn.classList.remove('active');
-        }
+        const isActive = btn.dataset.tag === selectedTag;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
       });
 
       if (noPostsMsg) {
-        noPostsMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+        noPostsMsg.hidden = visibleCount !== 0;
       }
 
       // Update URL search query without page reload

@@ -1,13 +1,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fetchWithTimeout, loadExistingStats, saveStats } from './utils';
-import type {
-  WakaTimeStats,
-  WakaTimeItem,
-  WakaTimeChart,
-  StackedLayer,
-} from './types';
+import { fetchWithTimeout, runStandalone } from './utils';
+import type { ChartItem, WakaTimeStats, WakaTimeItem, WakaTimeChart } from './types';
 
 function getWakaTimeApiKey(): string | undefined {
   if (process.env.WAKATIME_API_KEY) return process.env.WAKATIME_API_KEY;
@@ -22,6 +17,38 @@ function getWakaTimeApiKey(): string | undefined {
   return undefined;
 }
 
+const OTHER_COLOR = '#6b7280';
+/** How many items per category the chart shows. */
+const MAX_CHART_ITEMS = 5;
+
+/** WakaTime's own catch-all buckets, which the chart leaves out. */
+function isCatchAll(name: string): boolean {
+  return name === 'Other' || name.startsWith('Unknown');
+}
+
+interface ShareItem {
+  name: string;
+  percent: number;
+  color?: string;
+}
+
+/** The top `n` items of a WakaTime share, plus an 'Other' item covering the rest (including WakaTime's catch-alls). */
+function topWithOther(raw: ShareItem[] = [], n: number, totalHours: number): { items: WakaTimeItem[]; numTop: number } {
+  const top: WakaTimeItem[] = raw.filter((item) => !isCatchAll(item.name)).slice(0, n).map((item) => {
+    const pct = Number(item.percent.toFixed(1));
+    return {
+      name: item.name,
+      percent: pct,
+      hours: Math.round((pct / 100) * totalHours),
+      color: item.color || OTHER_COLOR,
+    };
+  });
+  const otherPct = Number(Math.max(0, 100 - top.reduce((acc, item) => acc + item.percent, 0)).toFixed(1));
+  const otherHours = Math.max(0, totalHours - top.reduce((acc, item) => acc + item.hours, 0));
+  const items = otherPct > 0 ? [...top, { name: 'Other', percent: otherPct, hours: otherHours, color: OTHER_COLOR }] : top;
+  return { items, numTop: top.length };
+}
+
 export async function fetchWakaTime(existing?: WakaTimeStats): Promise<WakaTimeStats | undefined> {
   const username = 'Murat65536';
   const shareIds = {
@@ -32,11 +59,16 @@ export async function fetchWakaTime(existing?: WakaTimeStats): Promise<WakaTimeS
   };
 
   try {
-    const [act, lang, edit, os] = await Promise.all([
-      fetchWithTimeout(`https://wakatime.com/share/@${username}/${shareIds.activity}.json`).then((r) => r.json()),
-      fetchWithTimeout(`https://wakatime.com/share/@${username}/${shareIds.languages}.json`).then((r) => r.json()),
-      fetchWithTimeout(`https://wakatime.com/share/@${username}/${shareIds.editors}.json`).then((r) => r.json()),
-      fetchWithTimeout(`https://wakatime.com/share/@${username}/${shareIds.os}.json`).then((r) => r.json()),
+    const fetchShare = async (id: string) => {
+      const r = await fetchWithTimeout(`https://wakatime.com/share/@${username}/${id}.json`);
+      if (!r.ok) throw new Error(`Share ${id} returned ${r.status} ${r.statusText}`);
+      return r.json();
+    };
+    const [act, langShare, editorShare, osShare] = await Promise.all([
+      fetchShare(shareIds.activity),
+      fetchShare(shareIds.languages),
+      fetchShare(shareIds.editors),
+      fetchShare(shareIds.os),
     ]);
 
     const days: Array<{ date: string; total: number }> = act.days || [];
@@ -51,121 +83,14 @@ export async function fetchWakaTime(existing?: WakaTimeStats): Promise<WakaTimeS
         .reduce((sum, d) => sum + (d.total || 0), 0);
       const last30DaysHours = Math.round(last30DaysSeconds / 3600);
 
-      // Top languages with 'Other'
-      const rawLangs: Array<{ name: string; percent: number; color?: string }> = lang.data || [];
-      const topLangs: WakaTimeItem[] = rawLangs.slice(0, 5).map((item) => {
-        const pct = Number(item.percent.toFixed(1));
-        return {
-          name: item.name,
-          percent: pct,
-          hours: Math.round((pct / 100) * totalHours),
-          color: item.color || '#6b7280',
-        };
-      });
-      const langSum = topLangs.reduce((acc, item) => acc + item.percent, 0);
-      const otherLangPct = Number(Math.max(0, 100 - langSum).toFixed(1));
-      const topHoursSum = topLangs.reduce((acc, item) => acc + item.hours, 0);
-      const otherHours = Math.max(0, totalHours - topHoursSum);
-      const languages: WakaTimeItem[] = [
-        ...topLangs,
-        ...(otherLangPct > 0 ? [{ name: 'Other', percent: otherLangPct, hours: otherHours, color: '#6b7280' }] : []),
-      ];
-
-      // Top editors with 'Other'
-      const rawEditors: Array<{ name: string; percent: number; color?: string }> = edit.data || [];
-      const topEditors: WakaTimeItem[] = rawEditors.slice(0, 4).map((item) => {
-        const pct = Number(item.percent.toFixed(1));
-        return {
-          name: item.name,
-          percent: pct,
-          hours: Math.round((pct / 100) * totalHours),
-          color: item.color || '#6b7280',
-        };
-      });
-      const editSum = topEditors.reduce((acc, item) => acc + item.percent, 0);
-      const otherEditPct = Number(Math.max(0, 100 - editSum).toFixed(1));
-      const topEditHoursSum = topEditors.reduce((acc, item) => acc + item.hours, 0);
-      const otherEditHours = Math.max(0, totalHours - topEditHoursSum);
-      const editors: WakaTimeItem[] = [
-        ...topEditors,
-        ...(otherEditPct > 0 ? [{ name: 'Other', percent: otherEditPct, hours: otherEditHours, color: '#6b7280' }] : []),
-      ];
-
-      const rawOs: Array<{ name: string; percent: number; color?: string }> = os.data || [];
-      const topOsItems: WakaTimeItem[] = rawOs.slice(0, 2).map((item) => {
-        const pct = Number(item.percent.toFixed(1));
-        return {
-          name: item.name,
-          percent: pct,
-          hours: Math.round((pct / 100) * totalHours),
-          color: item.color || '#6b7280',
-        };
-      });
-      const osSum = topOsItems.reduce((acc, item) => acc + item.percent, 0);
-      const otherOsPct = Number(Math.max(0, 100 - osSum).toFixed(1));
-      const topOsHoursSum = topOsItems.reduce((acc, item) => acc + item.hours, 0);
-      const otherOsHours = Math.max(0, totalHours - topOsHoursSum);
-      const topOs: WakaTimeItem[] = [
-        ...topOsItems,
-        ...(otherOsPct > 0 ? [{ name: 'Other', percent: otherOsPct, hours: otherOsHours, color: '#6b7280' }] : []),
-      ];
-
-      let since = 'May 2024';
-      if (days[0]?.date) {
-        const d = new Date(days[0].date + 'T00:00:00');
-        since = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      } else if (act.human_readable_range) {
-        since = act.human_readable_range.replace(/^since\s+/i, '');
-      }
+      const since = new Date(days[0].date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
       const categoryConfigs = [
-        {
-          key: 'languages' as const,
-          field: 'languages',
-          targets: languages,
-        },
-        {
-          key: 'editors' as const,
-          field: 'editors',
-          targets: editors,
-        },
-        {
-          key: 'os' as const,
-          field: 'operating_systems',
-          targets: topOs,
-        },
+        { key: 'languages' as const, field: 'languages', share: langShare.data, ...topWithOther(langShare.data, 5, totalHours) },
+        { key: 'editors' as const, field: 'editors', share: editorShare.data, ...topWithOther(editorShare.data, 4, totalHours) },
+        { key: 'os' as const, field: 'operating_systems', share: osShare.data, ...topWithOther(osShare.data, 2, totalHours) },
       ];
-
-      const existingCategories = existing?.chart?.categories || {
-        languages: [],
-        editors: [],
-        os: [],
-      };
-      const existingSeries = existing?.chart?.series || {
-        languages: [],
-        editors: [],
-        os: [],
-      };
-
-      const categoriesResult: {
-        languages: StackedLayer[];
-        editors: StackedLayer[];
-        os: StackedLayer[];
-      } = {
-        languages: [...existingCategories.languages],
-        editors: [...existingCategories.editors],
-        os: [...existingCategories.os],
-      };
-
-      const seriesResult: {
-        languages: number[][];
-        editors: number[][];
-        os: number[][];
-      } = {
-        languages: [...existingSeries.languages],
-        editors: [...existingSeries.editors],
-        os: [...existingSeries.os],
-      };
+      const [languages, editors, topOs] = categoryConfigs.map((cat) => cat.items);
 
       const apiKey = getWakaTimeApiKey();
       let summaryDaysMap: Map<string, any> | null = null;
@@ -194,172 +119,71 @@ export async function fetchWakaTime(existing?: WakaTimeStats): Promise<WakaTimeS
         }
       }
 
-      const width = 680;
-      const height = 260;
-      const pad = { top: 15, right: 15, bottom: 25, left: 45 };
-      const plotWidth = width - pad.left - pad.right;
-      const plotHeight = height - pad.top - pad.bottom;
-
-      // Downsample to ~250 points for smooth SVG
-      const sampleRate = Math.max(1, Math.floor(days.length / 250));
-      const sampleIndices: number[] = [];
-      for (let i = 0; i < days.length; i += sampleRate) {
-        sampleIndices.push(i);
-      }
-      if (sampleIndices[sampleIndices.length - 1] !== days.length - 1) {
-        sampleIndices.push(days.length - 1);
-      }
-
-      const totalCumBySample: number[] = [];
-      let totalCumSecs = 0;
-      let samplePointer = 0;
-
-      for (let i = 0; i < days.length; i++) {
-        totalCumSecs += days[i].total || 0;
-        if (i === sampleIndices[samplePointer]) {
-          totalCumBySample.push(totalCumSecs / 3600);
-          samplePointer++;
-        }
-      }
-
-      const finalTotalHours = totalCumSecs / 3600;
-      const maxVal = Math.ceil(finalTotalHours / 500) * 500 || 3000;
-
-      const numSamples = sampleIndices.length;
-      const xCoords = sampleIndices.map((_, idx) =>
-        Number((pad.left + (idx / (numSamples - 1)) * plotWidth).toFixed(1))
-      );
-
-      const getY = (val: number) =>
-        Number((pad.top + plotHeight - (val / maxVal) * plotHeight).toFixed(1));
-
-      // Build stacked layers for each category
+      // Without per-day summaries there is no breakdown to chart, so keep the previous chart
+      // (as long as it's in the current format)
+      let chart = existing?.chart?.totals ? existing.chart : undefined;
       if (summaryDaysMap) {
+        // One point per day
+        const totals: number[] = [];
+        let cumTotalHours = 0;
+        for (const day of days) {
+          cumTotalHours += (summaryDaysMap.get(day.date)?.grand_total?.total_seconds ?? day.total ?? 0) / 3600;
+          totals.push(Number(cumTotalHours.toFixed(1)));
+        }
+
+        const series: WakaTimeChart['series'] = { languages: [], editors: [], os: [] };
+        const categories: WakaTimeChart['categories'] = { languages: [], editors: [], os: [] };
+
         for (const cat of categoryConfigs) {
-          const catCumHours = cat.targets.map(() => 0);
-          const sampledLayerStack: number[][] = [];
-          let sPtr = 0;
+          // The chart shows each item separately rather than lumping the rest into "Other", so it gets its own item list
+          const chartItems: ChartItem[] = (cat.share || [])
+            .filter((item: ShareItem) => !isCatchAll(item.name))
+            .slice(0, MAX_CHART_ITEMS)
+            .map((item: ShareItem) => ({ name: item.name, color: item.color || OTHER_COLOR }));
+          const chartCumHours = chartItems.map(() => 0);
+          const statsCumHours = cat.items.map(() => 0);
+          const daily: number[][] = [];
 
           for (let i = 0; i < days.length; i++) {
             const day = days[i];
             const sDay = summaryDaysMap.get(day.date);
-            const items: Array<{ name: string; total_seconds: number }> = (sDay as any)?.[cat.field] || [];
-            let topSum = 0;
-            const numTop = cat.targets.length - 1;
-
-            for (let l = 0; l < numTop; l++) {
-              const match = items.find((item) => item.name === cat.targets[l].name);
-              const secs = match ? match.total_seconds : 0;
-              topSum += secs;
-              catCumHours[l] += secs / 3600;
-            }
-            const grandTotal = sDay?.grand_total?.total_seconds ?? day.total ?? 0;
-            const otherSecs = Math.max(0, grandTotal - topSum);
-            catCumHours[numTop] += otherSecs / 3600;
-
-            if (i === sampleIndices[sPtr]) {
-              let currentStack = 0;
-              const levels = [0];
-              for (let l = 0; l < cat.targets.length; l++) {
-                currentStack += catCumHours[l];
-                levels.push(currentStack);
-              }
-              sampledLayerStack.push(levels);
-              sPtr++;
-            }
-          }
-
-          if (sampledLayerStack.length === numSamples) {
-            seriesResult[cat.key] = sampledLayerStack.map((levels) =>
-              levels.map((v) => Number(v.toFixed(1)))
+            const secsByName = new Map<string, number>(
+              ((sDay as any)?.[cat.field] || []).map((item: { name: string; total_seconds: number }) => [item.name, item.total_seconds])
             );
-            categoriesResult[cat.key] = cat.targets.map((target, lIdx) => {
-              // Upper curve
-              const upperPoints: string[] = [];
-              for (let j = 0; j < numSamples; j++) {
-                const x = xCoords[j];
-                const y = getY(sampledLayerStack[j][lIdx + 1]);
-                upperPoints.push(`${x} ${y}`);
-              }
 
-              // Lower curve in reverse
-              const lowerPoints: string[] = [];
-              for (let j = numSamples - 1; j >= 0; j--) {
-                const x = xCoords[j];
-                const y = getY(sampledLayerStack[j][lIdx]);
-                lowerPoints.push(`${x} ${y}`);
-              }
-
-              const pathStr = `M ${upperPoints.join(' L ')} L ${lowerPoints.join(' L ')} Z`;
-              const targetTotal = catCumHours[lIdx];
-              const pct = Number(((targetTotal / (finalTotalHours || 1)) * 100).toFixed(1));
-
-              return {
-                name: target.name,
-                color: target.color,
-                totalHours: Math.round(targetTotal),
-                percent: pct,
-                path: pathStr,
-              };
+            chartItems.forEach((item, l) => {
+              chartCumHours[l] += (secsByName.get(item.name) ?? 0) / 3600;
             });
+
+            let topSum = 0;
+            for (let l = 0; l < cat.numTop; l++) {
+              const secs = secsByName.get(cat.items[l].name) ?? 0;
+              topSum += secs;
+              statsCumHours[l] += secs / 3600;
+            }
+            if (cat.items.length > cat.numTop) {
+              const grandTotal = sDay?.grand_total?.total_seconds ?? day.total ?? 0;
+              statsCumHours[cat.numTop] += Math.max(0, grandTotal - topSum) / 3600;
+            }
+
+            daily.push(chartCumHours.map((h) => Number(h.toFixed(1))));
           }
+
+          series[cat.key] = daily;
+          categories[cat.key] = chartItems;
+          // Prefer exact hours from the summaries over hours derived from share percentages
+          cat.items.forEach((item, l) => {
+            item.hours = Math.round(statsCumHours[l]);
+          });
         }
 
-        // Match exact hours from summaries to top items if available
-        languages.forEach((l) => {
-          const m = categoriesResult.languages.find((c) => c.name === l.name);
-          if (m) l.hours = m.totalHours;
-        });
-        editors.forEach((e) => {
-          const m = categoriesResult.editors.find((c) => c.name === e.name);
-          if (m) e.hours = m.totalHours;
-        });
-        topOs.forEach((o) => {
-          const m = categoriesResult.os.find((c) => c.name === o.name);
-          if (m) o.hours = m.totalHours;
-        });
-      }
-
-      // X ticks
-      const xTickIndices = [
-        0,
-        Math.floor(days.length * 0.33),
-        Math.floor(days.length * 0.66),
-        days.length - 1,
-      ];
-      const formatDateTick = (dStr?: string) => {
-        if (!dStr) return '';
-        const date = new Date(dStr + 'T00:00:00');
-        return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      };
-      const xTicks = xTickIndices.map((idx, i) => {
-        const x = Number((pad.left + (idx / (days.length - 1)) * plotWidth).toFixed(1));
-        const anchor = i === 0 ? 'start' : (i === xTickIndices.length - 1 ? 'end' : 'middle');
-        return {
-          label: formatDateTick(days[idx]?.date),
-          x,
-          anchor,
+        chart = {
+          dates: days.map((day) => day.date),
+          totals,
+          series,
+          categories,
         };
-      });
-
-      // Y ticks
-      const yStep = maxVal >= 2500 ? 1000 : 500;
-      const yTicks: Array<{ label: string; y: number }> = [];
-      for (let v = 0; v <= maxVal; v += yStep) {
-        yTicks.push({ label: `${v}h`, y: getY(v) });
       }
-
-      const dates = sampleIndices.map((idx) => days[idx]?.date || '');
-
-      const chart: WakaTimeChart = {
-        width,
-        height,
-        dates,
-        series: seriesResult,
-        categories: categoriesResult,
-        xTicks,
-        yTicks,
-      };
 
       const result: WakaTimeStats = {
         totalHours,
@@ -380,12 +204,4 @@ export async function fetchWakaTime(existing?: WakaTimeStats): Promise<WakaTimeS
   return existing;
 }
 
-// Standalone execution support
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/.*\//, ''))) {
-  const current = loadExistingStats();
-  const wk = await fetchWakaTime(current.wakatime);
-  if (wk) {
-    current.wakatime = wk;
-    saveStats(current);
-  }
-}
+runStandalone(import.meta.url, 'wakatime', fetchWakaTime);

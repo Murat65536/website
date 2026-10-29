@@ -1,35 +1,119 @@
 ---
+import 'katex/dist/katex.min.css';
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 
 export async function getStaticPaths() {
-  const posts = await getCollection('blog');
-  return posts.map(post => ({
+  const posts = (await getCollection('blog'))
+    .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+  return posts.map((post, idx) => ({
     params: { slug: post.id },
-    props: { post },
+    props: { post, newer: posts[idx - 1], older: posts[idx + 1] },
   }));
 }
 
-const { post } = Astro.props;
+const { post, newer, older } = Astro.props;
 const { Content } = await render(post);
+const { title, description, pubDate, updatedDate, tags } = post.data;
 
 function formatDate(date: Date) {
   return date.toISOString().split('T')[0];
 }
 ---
 
-<BaseLayout title={`${post.data.title} | Murat`} description={post.data.description}>
+<BaseLayout
+  title={title}
+  type="article"
+  publishedTime={pubDate}
+  modifiedTime={updatedDate}
+>
   <article>
+    <div class="breadcrumb">
+      <a href="/blog">← All posts</a>
+    </div>
     <header class="article-header">
-      <h1 class="article-title">{post.data.title}</h1>
+      <h1 class="article-title">{title}</h1>
       <div class="article-meta">
-        <time datetime={post.data.pubDate.toISOString()}>
-          {formatDate(post.data.pubDate)}
-        </time>
+        <time datetime={pubDate.toISOString()}>{formatDate(pubDate)}</time>
+        {updatedDate && (
+          <span>Updated <time datetime={updatedDate.toISOString()}>{formatDate(updatedDate)}</time></span>
+        )}
+        {tags.length > 0 && (
+          <span class="article-tags">
+            {tags.map((tag) => (
+              <a href={`/blog?tag=${encodeURIComponent(tag)}`} class="tag-badge">#{tag}</a>
+            ))}
+          </span>
+        )}
       </div>
     </header>
     <div class="article-content">
       <Content />
     </div>
   </article>
+
+  {(newer || older) && (
+    <nav class="post-nav" aria-label="More posts">
+      {older ? (
+        <a href={`/blog/${older.id}`} class="post-nav-link" rel="prev">
+          <span class="post-nav-label">← Older</span>
+          <span>{older.data.title}</span>
+        </a>
+      ) : <span />}
+      {newer && (
+        <a href={`/blog/${newer.id}`} class="post-nav-link post-nav-newer" rel="next">
+          <span class="post-nav-label">Newer →</span>
+          <span>{newer.data.title}</span>
+        </a>
+      )}
+    </nav>
+  )}
 </BaseLayout>
+
+<style>
+  .breadcrumb {
+    margin-bottom: 1.25rem;
+    font-size: 0.9rem;
+  }
+
+  .article-tags {
+    display: inline-flex;
+    gap: 0.4rem;
+  }
+
+  .article-tags .tag-badge {
+    text-decoration: none;
+  }
+
+  .post-nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 3rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-muted);
+  }
+
+  .post-nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    max-width: 48%;
+    text-decoration: none;
+  }
+
+  .post-nav-link:hover span:last-child {
+    text-decoration: underline;
+  }
+
+  .post-nav-newer {
+    text-align: right;
+    margin-left: auto;
+  }
+
+  .post-nav-label {
+    font-size: 0.8rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+  }
+</style>

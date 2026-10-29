@@ -1,7 +1,7 @@
 ---
 title: "Terminal displays"
 description: "An explanation of the convoluted mess that is terminal rendering."
-pubDate: "7-20-2026"
+pubDate: "2026-07-20"
 tags: ["coding"]
 ---
 
@@ -20,9 +20,9 @@ Using hashtag characters (or characters of any other kind) is the simplest way t
    ###   
     #    
 ```
-Here, the space characters represent an empty block and the hashtags represent a full block. The benefit of using this method is that it'll probably work on any terminal on the planet, but it comes the drawback of very low resolution and no color.
+Here, the space characters represent an empty block and the hashtags represent a full block. The benefit of using this method is that it'll probably work on any terminal on the planet, but it comes with the drawback of very low resolution and no color.
 
-A variant of this is using Unicode characters, which can give you higher resolutions
+A variant of this is using Unicode characters, which can give you higher resolutions.
 
 Half block characters:
 ```text
@@ -57,7 +57,7 @@ Quarter blocks have higher resolution better than half blocks. While braille pro
 
 Every method discussed above has the limitation of not supporting colors. ANSI escape sequences are very helpful here. These allow you to change the color of terminal text.
 
-This blog will use `\x1b` to indicate an escape sequence. `\033`, `\e`, and `u001b` can all also be used.
+This blog will use `\x1b` to indicate an escape sequence. `\033`, `\e`, and `\u001b` can all also be used.
 
 There are two color change operations that can be achieved using ANSI:
 - `\x1b[38;2;{r};{g};{b}m`: Change the foreground color
@@ -65,11 +65,14 @@ There are two color change operations that can be achieved using ANSI:
 
 The `{r}`, `{g}`, and `{b}` sequences represent the red, green, and blue aspects of the chosen color.
 
-After such an operation is performed, the characters proceeding it will have the color applied to them.
+After such an operation is performed, the characters following it will have the color applied to them.
 
 The simple approach to utilize these colors would be to simply pick the space character and change the background color, or to pick the full block character and change the foreground color.
+
 However, a much better approach is to choose the half block character (`▀`) and change both the foreground and the background colors.  This works because as the name suggests, half of the character is a block, while the other half is empty.
+
 In this case, the foreground color would set the color of the top half, while the background color would set the color of the bottom half.
+
 In addition to doubling the vertical resolution, it also has the effect of making each "pixel" square. This is because terminal characters are usually twice as high as they are wide, and this method halves the height.
 
 ### Palette Characters
@@ -98,7 +101,9 @@ There are several optimizations that can be done to enhance performance:
 
 ## Sixel
 Sixel allows for actual pixel-sized pixels, but it comes at the cost of not being able to display more than 256 colors in a single frame.
+
 It is usually not feasible to implement the Sixel protocol in a personal application because it's complicated enough that it just isn't worth the headache. For that reason, libraries are often used such as [libsixel](https://github.com/saitoha/libsixel).
+
 If using libsixel while displaying animations, set all its configuration options to the lowest possible setting, because you're going to need all the performance you can get. Sixel is not very fast.
 
 Not all terminals support Sixel. There's a list of the ones that do [here](https://www.arewesixelyet.com/).
@@ -117,10 +122,10 @@ Literally nothing:
 
 Palette characters:
 - Send the OSC (operating system command) 4 query `\x1b]4;1;?\x1b\\`. This sends a query for a palette in the specified palette index (in this case 1). If the terminal responds with something along the lines of `\x1b]4;1;rgb:RRRR/GGGG/BBBB\x1b\`, it was successful.
-- Check if the `TERM` environment variable is set to `256color`
+- Check if the `TERM` environment variable contains `256color` (e.g. `xterm-256color`)
 
 Truecolor:
-- Send the XTGETTCAP query `\x1bP+q524742\x1b\`, where `524747` is the hexadecimal representation of the ASCII string `RGB`. A terminal that supports truecolor will reply `\x1bP1+rRGB=8/8/8\x1b\`. The `8`s indicate 8 bits per color channel.
+- Send the XTGETTCAP query `\x1bP+q524742\x1b\`, where `524742` is the hexadecimal representation of the ASCII string `RGB`. A terminal that supports truecolor will reply `\x1bP1+rRGB=8/8/8\x1b\`. The `8`s indicate 8 bits per color channel.
 - Check if the `COLORTERM` environment variable equals `truecolor` or `24bit`
 
 Sixel:
@@ -134,6 +139,7 @@ Kitty Graphics Protocol:
 - Check if the `TERM` environment variable is set to `xterm-kitty`
 
 Edge cases:
+
 Sometimes on Windows, a terminal will tell you that it supports a format and then proceed to not work. This is because older versions of ConPTY are lame and stupid. They don't recognize how to handle those escape sequences. You can't really do too much about this.
 
 Until recently, my own project [dcat](https://github.com/Murat65536/dcat) was manually doing all the escape sequence work, but I have now switched to [Chafa](https://github.com/hpjansson/chafa) and have escaped from whatever torture this is.

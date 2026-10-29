@@ -1,4 +1,4 @@
-import { fetchWithTimeout, loadExistingStats, saveStats } from './utils';
+import { fetchWithTimeout, runStandalone } from './utils';
 import type { GitHubStats } from './types';
 
 export async function fetchGitHub(existing?: GitHubStats): Promise<GitHubStats | undefined> {
@@ -62,14 +62,4 @@ export async function fetchGitHub(existing?: GitHubStats): Promise<GitHubStats |
   return existing;
 }
 
-// Standalone execution support
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/.*\//, ''))) {
-  (async () => {
-    const current = loadExistingStats();
-    const gh = await fetchGitHub(current.github);
-    if (gh) {
-      current.github = gh;
-      saveStats(current);
-    }
-  })();
-}
+runStandalone(import.meta.url, 'github', fetchGitHub);

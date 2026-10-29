@@ -21,15 +21,16 @@ export function getPreciseAge(birthDateInput: string | Date, now: Date = new Dat
   return (years + fraction).toFixed(precision);
 }
 
-export function initAgeTicker(elementId: string, birthDateInput: string | Date, precision: number = 9): void {
+/** Keeps the element's text at the current age, using the birth date from its `data-birth-date`. */
+export function initAgeTicker(elementId: string, precision: number = 9): void {
   const el = document.getElementById(elementId);
-  if (!el) return;
+  const birthDate = el?.dataset.birthDate;
+  if (!el || !birthDate) return;
 
+  // requestAnimationFrame pauses automatically while the tab is hidden
   const update = () => {
-    el.textContent = getPreciseAge(birthDateInput, new Date(), precision);
+    el.textContent = getPreciseAge(birthDate, new Date(), precision);
+    requestAnimationFrame(update);
   };
-
   update();
-  const interval = setInterval(update, 40);
-  window.addEventListener('beforeunload', () => clearInterval(interval), { once: true });
 }

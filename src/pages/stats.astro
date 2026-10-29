@@ -6,15 +6,14 @@ import { wakatime as stats, chess, github, codeforces as cf } from '../data/stat
 const BIRTH_DATE = '2010-08-20T00:00:00';
 const age = getPreciseAge(BIRTH_DATE);
 ---
-<BaseLayout title="Murat Bayraktar | Stats">
+<BaseLayout title="Stats">
   <article>
-    <h3>Stats</h3>
-    <p><span class="label">Age:</span> <span id="age">{age}</span> yrs</p>
+    <h1>Stats</h1>
+    <p><span class="label">Age:</span> <span id="age" data-birth-date={BIRTH_DATE}>{age}</span> yrs</p>
     <p><span class="label">Gender:</span> Male</p>
     <p><span class="label">Height:</span> 6 ft</p>
 
-
-    <h4>Coding Activity</h4>
+    <h2>Coding Activity</h2>
     <p><span class="label">Total Time:</span> {stats.totalHours.toLocaleString()} hrs</p>
     <p><span class="label">Tracked Since:</span> {stats.since}</p>
     <p><span class="label">Daily Average:</span> {stats.dailyAverageHours} hrs</p>
@@ -22,17 +21,17 @@ const age = getPreciseAge(BIRTH_DATE);
     <p><span class="label">Languages:</span> {stats.languages.map(l => `${l.name} (${l.hours.toLocaleString()} hrs)`).join(', ')}</p>
     <p><span class="label">Editors:</span> {stats.editors.map(e => `${e.name} (${e.hours.toLocaleString()} hrs)`).join(', ')}</p>
     <p><span class="label">Operating Systems:</span> {stats.os.map(o => `${o.name} (${o.hours.toLocaleString()} hrs)`).join(', ')}</p>
-    <p><span class="label">GitHub Contributions:</span> <a href={github.url}>{github.contributions.toLocaleString()}</a> in the past year</p>
-    <p class="footnote">See the <a href="/coding-activity-chart">Coding Activity Chart</a> for graphs for a more comprehensive breakdown of coding stats.</p>
+    <p><span class="label">GitHub Contributions:</span> <a href={github.url} target="_blank" rel="noopener noreferrer">{github.contributions.toLocaleString()}</a> in the past year</p>
+    <p class="footnote">See the <a href="/coding-activity-chart">Coding Activity Chart</a> for a more comprehensive breakdown of coding stats.</p>
 
-    <h4>Chess</h4>
-    <p><span class="label">Handle:</span> <a href={chess.url}>{chess.username}</a></p>
+    <h2>Chess</h2>
+    <p><span class="label">Handle:</span> <a href={chess.url} target="_blank" rel="noopener noreferrer">{chess.username}</a></p>
     <p><span class="label">Rapid Rating:</span> {chess.rapid}</p>
     <p><span class="label">Blitz Rating:</span> {chess.blitz}</p>
     <p><span class="label">Bullet Rating:</span> {chess.bullet}</p>
 
-    <h4>Competitive Programming</h4>
-    <p><span class="label">Handle:</span> <a href={cf.url}>{cf.handle}</a></p>
+    <h2>Competitive Programming</h2>
+    <p><span class="label">Handle:</span> <a href={cf.url} target="_blank" rel="noopener noreferrer">{cf.handle}</a></p>
     <p><span class="label">Rating:</span> {cf.rating}</p>
     <p><span class="label">Max Rating:</span> {cf.maxRating}</p>
     <p><span class="label">Rank:</span> {cf.rank}</p>
@@ -41,6 +40,16 @@ const age = getPreciseAge(BIRTH_DATE);
 </BaseLayout>
 
 <style>
+  /* Keep the compact look of the page while using proper heading levels */
+  h1 {
+    font-size: 1.2rem;
+    margin-top: 2rem;
+  }
+  h2 {
+    font-size: 1rem;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
   .label {
     color: var(--text-muted);
     font-weight: 600;
@@ -53,5 +62,5 @@ const age = getPreciseAge(BIRTH_DATE);
 
 <script>
   import { initAgeTicker } from '../lib/age';
-  initAgeTicker('age', '2010-08-20T00:00:00');
+  initAgeTicker('age');
 </script>

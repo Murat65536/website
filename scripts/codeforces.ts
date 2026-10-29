@@ -1,4 +1,4 @@
-import { fetchWithTimeout, loadExistingStats, saveStats } from './utils';
+import { fetchWithTimeout, runStandalone } from './utils';
 import type { CodeforcesStats } from './types';
 
 function capitalize(s?: string): string {
@@ -80,14 +80,4 @@ export async function fetchCodeforces(existing?: CodeforcesStats): Promise<Codef
   return existing;
 }
 
-// Standalone execution support
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/.*\//, ''))) {
-  (async () => {
-    const current = loadExistingStats();
-    const cf = await fetchCodeforces(current.codeforces);
-    if (cf) {
-      current.codeforces = cf;
-      saveStats(current);
-    }
-  })();
-}
+runStandalone(import.meta.url, 'codeforces', fetchCodeforces);

@@ -5,31 +5,11 @@ export interface WakaTimeItem {
   color: string;
 }
 
-export interface StackedLayer {
-  name: string;
-  color: string;
-  totalHours: number;
-  percent: number;
-  path: string;
-}
+import type { ChartData } from '../src/lib/chart';
 
-export interface WakaTimeChart {
-  width: number;
-  height: number;
-  xTicks: Array<{ label: string; x: number; anchor?: string }>;
-  yTicks: Array<{ label: string; y: number }>;
-  dates?: string[];
-  series?: {
-    languages: number[][];
-    editors: number[][];
-    os: number[][];
-  };
-  categories: {
-    languages: StackedLayer[];
-    editors: StackedLayer[];
-    os: StackedLayer[];
-  };
-}
+/** The chart data shape is shared with the page that draws it. */
+export type { ChartItem } from '../src/lib/chart';
+export type WakaTimeChart = ChartData;
 
 export interface WakaTimeStats {
   totalHours: number;
