@@ -312,9 +312,6 @@ const tabs = CHART_CATEGORIES.map((id) => {
   .legend-item.is-off .legend-meta {
     text-decoration: line-through;
   }
-  .tab-panel.has-highlight .legend-item:not(.is-highlighted) {
-    opacity: 0.45;
-  }
   .legend-name {
     font-weight: 500;
   }
@@ -351,16 +348,15 @@ const tabs = CHART_CATEGORIES.map((id) => {
   .chart-wrapper :global(.tooltip-date) {
     font-weight: 700;
     color: var(--text);
-    margin-bottom: 0.2rem;
     font-size: 0.82rem;
-  }
-  .chart-wrapper :global(.tooltip-total) {
-    font-family: var(--font-mono);
-    color: var(--text-muted);
-    font-size: 0.78rem;
     margin-bottom: 0.35rem;
     padding-bottom: 0.35rem;
     border-bottom: 1px solid var(--border-muted);
+  }
+  .chart-wrapper :global(.tooltip-date:last-child) {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
   }
   .chart-wrapper :global(.tooltip-items) {
     display: flex;
@@ -381,10 +377,6 @@ const tabs = CHART_CATEGORIES.map((id) => {
   }
   .chart-wrapper :global(.tooltip-item.is-highlighted) {
     font-weight: 600;
-  }
-  .chart-wrapper :global(.tooltip-item.is-off) {
-    opacity: 0.45;
-    text-decoration: line-through;
   }
   .chart-wrapper :global(.tooltip-item-color) {
     width: 10px;
@@ -407,12 +399,9 @@ const tabs = CHART_CATEGORIES.map((id) => {
     stroke-width: 2;
     stroke-linejoin: round;
     stroke-linecap: round;
-    transition: opacity 0.15s ease;
+    transition: stroke-width 0.15s ease;
   }
-  .tab-panel.has-highlight .line-path:not(.is-highlighted) {
-    opacity: 0.15;
-  }
-  .tab-panel.has-highlight .line-path.is-highlighted {
+  .line-path.is-highlighted {
     stroke-width: 2.5;
   }
   .chart-wrapper :global(.hover-dot) {
@@ -584,9 +573,8 @@ const tabs = CHART_CATEGORIES.map((id) => {
       rafId = requestAnimationFrame(renderChart);
     }
 
-    /** Brightens one item's line and legend entry and fades the rest; null clears it. */
+    /** Highlights one item's line; null clears it. */
     function setHighlight(tab: Tab, item: number | null) {
-      tab.panel.classList.toggle('has-highlight', item !== null);
       tab.lines.forEach((line, i) => line.classList.toggle('is-highlighted', i === item));
       tab.legendButtons.forEach((button, i) => button.classList.toggle('is-highlighted', i === item));
     }
@@ -626,25 +614,25 @@ const tabs = CHART_CATEGORIES.map((id) => {
         ...tab.items.flatMap((item, i) => (tab.hidden.has(i) ? [] : [circle(x, ys[i], i === nearest ? 4.5 : 3.5, item.color)]))
       );
 
-      // Every item, in legend order, so the rows never move around
-      const rows = tab.items.map((item, i) => {
+      // Visible items, in legend order, so the rows never move around
+      const rows = tab.items.flatMap((item, i) => {
+        if (tab.hidden.has(i)) return [];
         const row = el('div', 'tooltip-item');
         row.classList.toggle('is-highlighted', i === nearest);
-        row.classList.toggle('is-off', tab.hidden.has(i));
         const key = el('span', 'tooltip-item-color');
         key.style.backgroundColor = item.color;
         const name = el('span', 'tooltip-item-name');
         name.append(key, el('span', '', item.name));
         row.append(name, el('span', 'tooltip-item-hours', formatHours(hours[i])));
-        return row;
+        return [row];
       });
-      const list = el('div', 'tooltip-items');
-      list.append(...rows);
-      tab.tooltip.replaceChildren(
-        el('div', 'tooltip-date', formatFullDate(dates[j])),
-        el('div', 'tooltip-total', `Total: ${formatHours(totalHoursBetween(totals, sIdx, j))}`),
-        list
-      );
+      const children: HTMLElement[] = [el('div', 'tooltip-date', formatFullDate(dates[j]))];
+      if (rows.length > 0) {
+        const list = el('div', 'tooltip-items');
+        list.append(...rows);
+        children.push(list);
+      }
+      tab.tooltip.replaceChildren(...children);
 
       // Keep the tooltip beside the pointer rather than over the dots
       tab.tooltip.hidden = false;
