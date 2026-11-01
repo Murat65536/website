@@ -1,12 +1,12 @@
 ---
 title: "3d Rendering in the Terminal"
 description: "Another step closer to living entirely in the terminal"
-pubDate: "2026-10-30"
+pubDate: "2026-11-1"
 tags: ["coding"]
 ---
 I don't want to leave the terminal for anything.
 
-I like its simplicity. It forces me to be creative when making something in it, and for applications I use to strip out bloat and just give me something that works. I don't like that Zen takes up 5gb of RAM every time I open it. Just want to use the terminal: it's resource-efficient, debloated, and really fricking cool.
+I like its simplicity. It forces me to be creative when making something in it, and for applications I use to strip out bloat and just give me something that works. I don't like that Zen takes up 5gb of RAM every time I open it. I just want to use the terminal: it's resource-efficient, debloated, and really fricking cool.
 
 What if I want to see a 3d model?
 
