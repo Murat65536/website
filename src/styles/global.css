@@ -24,43 +24,43 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0d1117;
-    --bg-card: #161b22;
+    --bg: #181818;
+    --bg-card: #222222;
     --text: #e6edf3;
     --text-muted: #848d97;
-    --border: #30363d;
-    --border-muted: #21262d;
+    --border: #383838;
+    --border-muted: #282828;
     --link: #58a6ff;
     --link-visited: #bc8cff;
-    --code-bg: #161b22;
-    --tag-bg: #21262d;
+    --code-bg: #222222;
+    --tag-bg: #282828;
     --tag-text: #c9d1d9;
     --callout-theorem-bg: #121d15;
     --callout-theorem-border: #238636;
-    --callout-proof-bg: #151b23;
+    --callout-proof-bg: #222222;
     --callout-proof-border: #475569;
-    --callout-note-bg: #161b22;
+    --callout-note-bg: #222222;
     --callout-note-border: #1f6feb;
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #0d1117;
-  --bg-card: #161b22;
+  --bg: #181818;
+  --bg-card: #222222;
   --text: #e6edf3;
   --text-muted: #848d97;
-  --border: #30363d;
-  --border-muted: #21262d;
+  --border: #383838;
+  --border-muted: #282828;
   --link: #58a6ff;
   --link-visited: #bc8cff;
-  --code-bg: #161b22;
-  --tag-bg: #21262d;
+  --code-bg: #222222;
+  --tag-bg: #282828;
   --tag-text: #c9d1d9;
   --callout-theorem-bg: #121d15;
   --callout-theorem-border: #238636;
-  --callout-proof-bg: #151b23;
+  --callout-proof-bg: #222222;
   --callout-proof-border: #475569;
-  --callout-note-bg: #161b22;
+  --callout-note-bg: #222222;
   --callout-note-border: #1f6feb;
 }
 
