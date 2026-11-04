@@ -14,4 +14,9 @@ Well, I could open up [Carbonyl](https://github.com/fathyb/carbonyl) (or one of 
 
 [dcat](https://github.com/Murat65536/dcat) is my solution to this. It uses Assimp to support virtually any 3d file format and WGPU to display it without any performance issues. It has got textures, animations, Kitty Graphics Protocol, Sixel, fallbacks for old terminals, wireframe toggling, keyboard controls, mouse controls, and support on Windows, Mac, and Linux. It's also a solution to see 3d models over SSH.
 
+<video controls autoplay loop muted playsinline width="100%">
+  <source src="/videos/dcat.mp4" type="video/mp4" />
+  Your browser does not support the video tag.
+</video>
+
 I've been developing the project for quite some time now, but I very recently switched it from C to Rust, which made cross-platform support a lot easier. There's also a [neovim plugin](https://github.com/Murat65536/dcat.nvim) for this, which automatically runs dcat when you open a 3d model file.
